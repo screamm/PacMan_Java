@@ -1,27 +1,19 @@
-import javax.swing.JFrame;
+// /src/App.java
 
+import javax.swing.JFrame;
 
 public class App {
     public static void main(String[] args) throws Exception {
-       
-    int rowCount = 42;
-    int columnCount = 64;
-    int tileSize = 32;
-    int boardWidth = columnCount * tileSize;
-    int boardHeight = rowCount * tileSize;
-
-    JFrame frame = new JFrame("Pac");
-    // frame.setVisible(true);
-    frame.setSize(boardWidth, boardHeight);
-    frame.setLocationRelativeTo(null);
-    frame.setResizable(false);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
+        // Skapa instans av PacMan-spelet
         PacMan pacmanGame = new PacMan();
+        
+        // Skapa och konfigurera JFrame
+        JFrame frame = new JFrame("PacMan");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
         frame.add(pacmanGame);
         frame.pack();
+        frame.setLocationRelativeTo(null); // Centrera fönstret på skärmen
         frame.setVisible(true);
-
-        
     }
 }
