@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.util.HashSet;
 import java.util.Random;
 import javax.swing.*;
+import java.util.Iterator;
 
 public class PacMan extends JPanel {
 
@@ -27,31 +28,26 @@ public class PacMan extends JPanel {
         }
     }
 
-    private int rowCount = 21;
+    private int rowCount = 23;
     private int columnCount = 31;
-    private int tileSize = 64; // Större rutor
+    private int tileSize = 40; // Större rutor för bättre spelupplevelse
     private int boardWidth = columnCount * tileSize;
     private int boardHeight = rowCount * tileSize;
     
     private Image wallImage;
-    private Image blueGhostImage;
-    private Image orangeGhostImage;
-    private Image pinkGhostImage;
-    private Image redGhostImage;
     private Image foodImage;
     private Image powerPelletImage;
 
-    private Image pacmanUpImage;
-    private Image pacmanDownImage;
-    private Image pacmanLeftImage;
-    private Image pacmanRightImage;
-
     private int pacmanVelocityX = 0;
     private int pacmanVelocityY = 0;
-    private int pacmanSpeed = 8;
+    private int pacmanSpeed = 3; // Anpassad hastighet
+    private int pacManDirection = 0; // 0=höger, 1=ner, 2=vänster, 3=upp
+    private boolean pacManMouthOpen = true;
+    private int animationCounter = 0;
+    private int animationSpeed = 3; // Lägre värde = snabbare animation
     private Timer gameTimer;
     private Random random = new Random();
-    private int ghostSpeed = 4;
+    private int ghostSpeed = 3; // Ökad hastighet för att spökena ska röra sig bättre
     private boolean gameOver = false;
     private boolean gameWon = false;
     private int score = 0;
@@ -60,12 +56,8 @@ public class PacMan extends JPanel {
     // Ljudhanterare
     private SoundManager soundManager;
     
-    // Animeringsvariabler
-    private int animationFrame = 0;
-    private int animationDelay = 5;
-    private int animationCounter = 0;
-    private double[] mouthAngles = {20, 40, 60, 40, 20, 0};
-
+    private boolean gamePaused = false;
+    
     // Visuella förbättringar
     private Color backgroundColor = new Color(0, 0, 20); // Mycket mörk blå, nästan svart
     private Font gameFont = new Font("Arial", Font.BOLD, 30);
@@ -74,48 +66,29 @@ public class PacMan extends JPanel {
     // Halverad spelplan för bättre proportioner med större rutor
     private String[] tileMap = {
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XOOOOOOOOOOOOOXOoOOOOOOOOOOOOOX",
-        "XOXXXXXXXXXOXOXOXXXXXXXXXOXOXOX",
-        "XEXOOOOOOOOXOXOXOOOOOOOOXOXEXOX",
-        "XOXOXXXXXXOXOXOXOXXXXXXOXOXOXOX",
-        "XOXOXOOOOOXOXOXOXOOOOOXOXOXOXOX",
-        "XOXOXOXXOXOXOXOXOXXOXOXOXOXOXOX",
-        "XOXOXOrXOXOXOXOXOXOOOOXOXOXOXOX",
-        "XOXOXXXXOXOXOXOXOXXXXXOXOXOXOXOX",
-        "XOXOOOOOXOXOXOXOXOOOOOXOXOXOXOX",
-        "XOXXXXXXXOXOXOXOXXXXXXXOXOXOXOX",
-        "XOOOOOOOOOXOXOXOXOOOOOOXOXOXbXOX",
-        "XXXXXXXXXXXXOXOXOXXXXXXXOXOXOXOX",
-        "OOOOOOOOOOOOXOXOXOOOOOOOOXOXOXOX",
-        "XXXXXXXXXXXXOXOXOXXXXXXXOXOXOXOX",
-        "XOOOOOOOOOXOXOXOXOOOOOOXOXOXpXOX",
-        "XOXXXXXXXOXOXOXOXXXXXXXOXOXOXOXOX",
-        "XOXOOOOOOXOXOXOXOOOOOOXOXOXOXOXOX",
-        "XOXOXXXXXOXOXOXOXXXXXXXOXOXOXOXOX",
-        "XOXOOOOOXOXOXOXOXOOOOOOXOXOXOXOXOX",
-        "XOXOXXXOXOXOXOXOXXXXXXXOXOXOXOXOX", 
-        "XOXOOOOOXOXOXOXOOOOOOOOXOXOXOXOXOX",
-        "XOXXXXXXXOXOXOXOXXXXXXXXXOXOXOXOXOX",
-        "XOOOOOOOOXOXOXOOOOOOOOOOXOXOXOXOXOX",
-        "XXXXXXXXOXOXOXXXXXXXXXXXXXOXOXOXOX",
-        "XXXXXXXXOXOXOOOOOOOOOOOOOOXOXOXOX",
-        "XXXXXXXXOXOXOXXXXXXXXXXXXXXXOXOXOX",
-        "XOOOOOOOOXOXOXOOOOOOOOOOOOXOXOXOX",
-        "XOXXXXXXXOXOXOXOXXXXXXXXXXXOXOXOX",
-        "XOXEOOOOXOXOXOXOOOOOOOOOOOOXOXOX",
-        "XOXOXXXXXOXOXOXOXXXXXXXXXXXOXOXOX",
-        "XOXOOOOXOXOXOXOXOOOOOOOOOOXOXOX", 
-        "XOXOXXXOXOXOXOXOXXXXXXXXXXXXXOXOX",
-        "XOXOOOOXOXOXOXOXOOOOOOOOOOOOXOXOX",
-        "XOXXXXXOXOXOXOXOXXXXXXXXXXXOXOXOX",
-        "XOOOOOOXOXOXOXOXOOOOOOOOOOXOXOXOX",
-        "XXXXXXXXOXOXOXOXXXXXXXXXXXXXOXOX",
-        "XOOOOOOOOXOXOXOXOOOOOOOOOOXOXOXOX",
-        "XOXXXXXXXOXOXOXOXXXXXXXXXXXOXOXOX",
-        "XOXOOOOOOXOXOXOXOOOOPOOOOOOXOXOXOX",
-        "XOXXXXXXXOXXXOXXXXXXXXXXXXXXXOXOXOX",
-        "XOOOOOOOOXOOOOOOOOOOOOOOOOOOXOXOXOX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        "XooooooooooooXXoooooooooooooooX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
+        "XEXoXXoXXXXXoXXoXXXXXoXXXXXoEoX",
+        "XoXoXXoXXXXXoXXoXXXXXoXXXXXoXoX",
+        "XoooooooooooooooooooooooooooooX",
+        "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
+        "XoXXXXoXXooooXXooooXXoXXXXoXoX",
+        "XoXXXXoXXoXXoXXoXXoXXoXXXXoXoX",
+        "XooooooXXoXXrbpoXXoXXooooooooX",
+        "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
+        "XXXXXXoXXoooooooooooXXoXXXXXXX",
+        "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
+        "ooooooooooXXX   XXXoooooooooo",
+        "XXXXXXoXXoXXX   XXXoXXoXXXXXXX",
+        "XXXXXXoXXoooooooooooXXoXXXXXXX",
+        "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
+        "XooooooXXooooXXooooXXooooooooX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
+        "XEoXXXooooooPooooooooXXXXXoEoX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
+        "XooooooooooooXXoooooooooooooooX",
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     };
 
     HashSet<Block> walls;
@@ -123,6 +96,18 @@ public class PacMan extends JPanel {
     HashSet<Block> foods;
     HashSet<Block> powerPellets;
     Block pacman;    
+
+    private boolean[] ghostsReleased = new boolean[10]; // För att hålla reda på vilka spöken som släppts ut
+    private int ghostReleaseTimer = 0;
+    private int ghostReleaseInterval = 100; // Minskat intervall för att släppa ut spöken snabbare
+
+    private Image[] ghostImages;
+    private Image[] pacManImages;
+    private Image scaredGhostImage;
+
+    private boolean ghostsScared = false;
+    private int scaredTimer = 0;
+    private int scaredDuration = 300; // Hur länge spöken är skrämda (i uppdateringar)
 
     public PacMan() {
         setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -132,19 +117,7 @@ public class PacMan extends JPanel {
         soundManager = new SoundManager();
 
         // Skapa bilder med vår GameImages-hjälpklass
-        wallImage = GameImages.createWallImage();
-        blueGhostImage = GameImages.createGhostImage(Color.CYAN);
-        orangeGhostImage = GameImages.createGhostImage(new Color(255, 165, 0)); // Orange
-        pinkGhostImage = GameImages.createGhostImage(Color.PINK);
-        redGhostImage = GameImages.createGhostImage(Color.RED);
-        foodImage = GameImages.createFoodImage();
-        powerPelletImage = GameImages.createPowerPelletImage();
-
-        // Skapa Pacman-bilder med mun öppen 40 grader
-        pacmanUpImage = GameImages.createPacmanUpImage(40);
-        pacmanDownImage = GameImages.createPacmanDownImage(40);
-        pacmanLeftImage = GameImages.createPacmanLeftImage(40);
-        pacmanRightImage = GameImages.createPacmanRightImage(40);
+        loadImages();
         
         // Ladda spelplanen
         loadMap();
@@ -156,74 +129,112 @@ public class PacMan extends JPanel {
         soundManager.play("start");
     }
 
-    public void loadMap() {
-        walls = new HashSet<Block>();
-        foods = new HashSet<Block>();
-        powerPellets = new HashSet<Block>();
-        ghosts = new HashSet<Block>();
+    private void loadImages() {
+        wallImage = GameImages.createWallImage();
+        foodImage = GameImages.createFoodImage();
+        powerPelletImage = GameImages.createPowerPelletImage();
         
+        // Ladda spökbilder
+        ghostImages = new Image[4];
+        ghostImages[0] = GameImages.createRedGhostImage();    // Blinky
+        ghostImages[1] = GameImages.createPinkGhostImage();   // Pinky
+        ghostImages[2] = GameImages.createCyanGhostImage();   // Inky
+        ghostImages[3] = GameImages.createOrangeGhostImage(); // Clyde
+        
+        // Skapa Pac-Man-bilder för olika riktningar och munöppningar
+        pacManImages = new Image[8]; // 4 riktningar x 2 munöppningar
+        for (int i = 0; i < 4; i++) {
+            pacManImages[i*2] = GameImages.createPacManImage(i, true);     // Öppen mun
+            pacManImages[i*2+1] = GameImages.createPacManImage(i, false);  // Stängd mun
+        }
+        
+        // Skapa skrämd spökbild
+        scaredGhostImage = GameImages.createScaredGhostImage();
+    }
+
+    public void loadMap() {
         System.out.println("Laddar karta. rowCount: " + rowCount + ", tileMap rader: " + tileMap.length);
         
-        for (int r = 0; r < tileMap.length; r++) {
-            String row = tileMap[r];
-            
-            for (int c = 0; c < row.length(); c++) {
-                char tileMapChar = row.charAt(c);
+        walls = new HashSet<>();
+        ghosts = new HashSet<>();
+        foods = new HashSet<>();
+        powerPellets = new HashSet<>();
+        pacman = null;
+        
+        for (int row = 0; row < tileMap.length; row++) {
+            for (int col = 0; col < tileMap[row].length(); col++) {
+                char tile = tileMap[row].charAt(col);
                 
-                // Skriv ut Pacman och spökpositioner för felsökning
-                if (tileMapChar == 'P' || tileMapChar == 'b' || tileMapChar == 'o' || 
-                    tileMapChar == 'p' || tileMapChar == 'r') {
-                    System.out.println("Hittade " + tileMapChar + " på rad " + r + ", kolumn " + c);
-                }
-                
-                int x = c*tileSize;
-                int y = r*tileSize;
-    
-                if (tileMapChar == 'X') { // block wall
-                    Block wall = new Block(wallImage, x, y, tileSize, tileSize);
-                    walls.add(wall);
-                }
-                else if (tileMapChar == 'b') { //blue ghost
-                    Block ghost = new Block(blueGhostImage, x, y, tileSize, tileSize);
+                if (tile == 'X') {
+                    // Vägg
+                    walls.add(new Block(wallImage, col * tileSize, row * tileSize, tileSize, tileSize));
+                } else if (tile == 'o') {
+                    // Mat
+                    foods.add(new Block(foodImage, col * tileSize + tileSize/4, row * tileSize + tileSize/4, tileSize/2, tileSize/2));
+                } else if (tile == 'E') {
+                    // Power pellet
+                    powerPellets.add(new Block(powerPelletImage, col * tileSize + tileSize/4, row * tileSize + tileSize/4, tileSize/2, tileSize/2));
+                } else if (tile == 'r') {
+                    // Rött spöke
+                    System.out.println("Hittade r på rad " + row + ", kolumn " + col);
+                    Block ghost = new Block(ghostImages[0], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
-                    System.out.println("Lagt till blått spöke på position " + x + "," + y);
-                }
-                else if (tileMapChar == 'o') { //orange ghost
-                    Block ghost = new Block(orangeGhostImage, x, y, tileSize, tileSize);
+                    System.out.println("Lagt till rött spöke på position " + ghost.x + "," + ghost.y);
+                } else if (tile == 'p') {
+                    // Rosa spöke
+                    System.out.println("Hittade p på rad " + row + ", kolumn " + col);
+                    Block ghost = new Block(ghostImages[1], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
-                    System.out.println("Lagt till orange spöke på position " + x + "," + y);
-                }
-                else if (tileMapChar == 'p') { //pink ghost
-                    Block ghost = new Block(pinkGhostImage, x, y, tileSize, tileSize);
+                    System.out.println("Lagt till rosa spöke på position " + ghost.x + "," + ghost.y);
+                } else if (tile == 'b') {
+                    // Blått spöke
+                    System.out.println("Hittade b på rad " + row + ", kolumn " + col);
+                    Block ghost = new Block(ghostImages[2], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
-                    System.out.println("Lagt till rosa spöke på position " + x + "," + y);
-                }
-                else if (tileMapChar == 'r') { //red ghost
-                    Block ghost = new Block(redGhostImage, x, y, tileSize, tileSize);
+                    System.out.println("Lagt till blått spöke på position " + ghost.x + "," + ghost.y);
+                } else if (tile == 'o') {
+                    // Orange spöke - ändra detta till 'O' (stor bokstav) för att skilja från mat
+                    System.out.println("Hittade o på rad " + row + ", kolumn " + col);
+                    Block ghost = new Block(ghostImages[3], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
-                    System.out.println("Lagt till rött spöke på position " + x + "," + y);
-                }
-                else if (tileMapChar == 'P') { //pacman
-                    pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
-                    System.out.println("Lagt till Pacman på position " + x + "," + y);
-                }
-                else if (tileMapChar == ' ' || tileMapChar == 'O') { // vanlig mat (pellet)
-                    Block food = new Block(foodImage, x, y, tileSize, tileSize);
-                    foods.add(food);
-                }
-                else if (tileMapChar == 'E') { // power pellet
-                    Block powerPellet = new Block(powerPelletImage, x, y, tileSize, tileSize);
-                    powerPellets.add(powerPellet);
+                    System.out.println("Lagt till orange spöke på position " + ghost.x + "," + ghost.y);
+                } else if (tile == 'P') {
+                    // Pacman
+                    System.out.println("Hittade P på rad " + row + ", kolumn " + col);
+                    pacman = new Block(pacManImages[0], col * tileSize, row * tileSize, tileSize, tileSize);
+                    System.out.println("Lagt till Pacman på position " + pacman.x + "," + pacman.y);
                 }
             }
         }
         
-        // Utskrifter för att verifiera laddat innehåll
         System.out.println("Antal väggar: " + walls.size());
         System.out.println("Antal mat: " + foods.size());
         System.out.println("Antal power pellets: " + powerPellets.size());
         System.out.println("Antal spöken: " + ghosts.size());
         System.out.println("Pacman hittad: " + (pacman != null));
+        
+        // Om Pacman inte hittades, skapa en på en standardposition
+        if (pacman == null) {
+            pacman = new Block(pacManImages[0], 13 * tileSize, 13 * tileSize, tileSize, tileSize);
+            System.out.println("Pacman inte hittad i kartan, skapad på standardposition: " + pacman.x + "," + pacman.y);
+        }
+        
+        // Begränsa antalet spöken till 4
+        if (ghosts.size() > 4) {
+            System.out.println("För många spöken (" + ghosts.size() + "), begränsar till 4");
+            HashSet<Block> limitedGhosts = new HashSet<>();
+            int count = 0;
+            for (Block ghost : ghosts) {
+                if (count < 4) {
+                    limitedGhosts.add(ghost);
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            ghosts = limitedGhosts;
+            System.out.println("Antal spöken efter begränsning: " + ghosts.size());
+        }
     }
 
 
@@ -241,25 +252,32 @@ public class PacMan extends JPanel {
                     }
                 }
                 
+                // Kontrollera att pacman inte är null innan vi försöker ändra riktning
+                if (pacman == null) return;
+                
                 if (keyCode == KeyEvent.VK_UP) {
                     pacmanVelocityX = 0;
                     pacmanVelocityY = -pacmanSpeed;
-                    pacman.image = pacmanUpImage;
+                    pacManDirection = 3; // Upp
+                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
                 } 
                 else if (keyCode == KeyEvent.VK_DOWN) {
                     pacmanVelocityX = 0;
                     pacmanVelocityY = pacmanSpeed;
-                    pacman.image = pacmanDownImage;
+                    pacManDirection = 1; // Ner
+                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
                 } 
                 else if (keyCode == KeyEvent.VK_LEFT) {
                     pacmanVelocityX = -pacmanSpeed;
                     pacmanVelocityY = 0;
-                    pacman.image = pacmanLeftImage;
+                    pacManDirection = 2; // Vänster
+                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
                 }
                 else if (keyCode == KeyEvent.VK_RIGHT) {
                     pacmanVelocityX = pacmanSpeed;
                     pacmanVelocityY = 0;
-                    pacman.image = pacmanRightImage;
+                    pacManDirection = 0; // Höger
+                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
                 }
                 else if (keyCode == KeyEvent.VK_M) {
                     // Tryck M för att slå på/av ljud
@@ -276,7 +294,6 @@ public class PacMan extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 update();
-                updateAnimation();
                 repaint();
             }
         });
@@ -285,33 +302,83 @@ public class PacMan extends JPanel {
 
     // Återställ spelet för omstart
     private void resetGame() {
+        // Återställ spelet
+        loadMap();
         score = 0;
         lives = 3;
         gameOver = false;
         gameWon = false;
-        
-        // Ladda spelplanen på nytt
-        loadMap();
-        
-        // Återställ hastigheter
         pacmanVelocityX = 0;
         pacmanVelocityY = 0;
         
+        // Återställ spökutgång
+        ghostReleaseTimer = 0;
+        for (int i = 0; i < ghostsReleased.length; i++) {
+            ghostsReleased[i] = false;
+        }
+        
+        // Starta speltimern
+        if (gameTimer != null) {
+            gameTimer.start();
+        }
+        
         // Spela startljudet
         soundManager.play("start");
-        
-        // Starta timern igen
-        gameTimer.start();
     }
 
     private void update() {
-        if (gameOver || gameWon) return;
+        if (!gameOver && !gamePaused) {
+            // Uppdatera Pac-Man
+            updatePacMan();
+            
+            // Uppdatera spöken
+            updateGhosts();
+            
+            // Kontrollera kollision med spöken
+            checkGhostCollision();
+            
+            // Uppdatera skrämd-timer
+            if (ghostsScared) {
+                scaredTimer++;
+                if (scaredTimer >= scaredDuration) {
+                    ghostsScared = false;
+                    
+                    // Återställ spökbilder
+                    int ghostIndex = 0;
+                    for (Block ghost : ghosts) {
+                        ghost.image = ghostImages[ghostIndex % 4];
+                        ghostIndex++;
+                    }
+                }
+            }
+            
+            // Kontrollera om alla pellets är uppätna
+            checkLevelComplete();
+            
+            // Uppdatera animationer
+            updateAnimation();
+        }
         
-        // Förflyttning av Pacman
+        // Tvinga omritning
+        repaint();
+    }
+    
+    private void updatePacMan() {
+        // Kontrollera att pacman inte är null
+        if (pacman == null) return;
+        
+        // Uppdatera Pac-Man-position
         int newX = pacman.x + pacmanVelocityX;
         int newY = pacman.y + pacmanVelocityY;
         
-        // Kolla kollision med väggar
+        // Hantera tunnlar på sidorna
+        if (newX < -pacman.width/2) {
+            newX = boardWidth - pacman.width/2;
+        } else if (newX > boardWidth - pacman.width/2) {
+            newX = -pacman.width/2;
+        }
+        
+        // Kontrollera kollision med väggar
         boolean collision = false;
         for (Block wall : walls) {
             if (newX < wall.x + wall.width && 
@@ -327,139 +394,316 @@ public class PacMan extends JPanel {
         if (!collision) {
             pacman.x = newX;
             pacman.y = newY;
-        }
-        
-        // Ät mat (vanliga pellets)
-        HashSet<Block> foodToRemove = new HashSet<>();
-        for (Block food : foods) {
-            if (pacman.x < food.x + food.width && 
-                pacman.x + pacman.width > food.x && 
-                pacman.y < food.y + food.height && 
-                pacman.y + pacman.height > food.y) {
-                foodToRemove.add(food);
-                score += 10; // 10 poäng per pellet
-                
-                // Spela ätljud
-                soundManager.play("eat");
-            }
-        }
-        foods.removeAll(foodToRemove);
-        
-        // Ät power pellets
-        HashSet<Block> powerPelletsToRemove = new HashSet<>();
-        for (Block powerPellet : powerPellets) {
-            if (pacman.x < powerPellet.x + powerPellet.width && 
-                pacman.x + pacman.width > powerPellet.x && 
-                pacman.y < powerPellet.y + powerPellet.height && 
-                pacman.y + pacman.height > powerPellet.y) {
-                powerPelletsToRemove.add(powerPellet);
-                score += 50; // 50 poäng per power pellet
-                
-                // Spela power-pellet ljud
-                soundManager.play("power");
-                
-                // Här kan du implementera logik för att göra spöken sårbara
-                // t.ex. ändra deras färg och beteende
-            }
-        }
-        powerPellets.removeAll(powerPelletsToRemove);
-        
-        // Kontrollera om all mat är uppäten för vinst
-        if (foods.isEmpty() && powerPellets.isEmpty()) {
-            gameWon = true;
-            gameTimer.stop();
-            soundManager.play("win");
-        }
-        
-        // Flytta spöken
-        moveGhosts();
-        
-        // Kontrollera kollision med spöken
-        checkGhostCollision();
-    }
-    
-    private void updateAnimation() {
-        // Uppdatera animationsramarna med en viss fördröjning
-        animationCounter++;
-        if (animationCounter >= animationDelay) {
-            animationCounter = 0;
-            animationFrame = (animationFrame + 1) % mouthAngles.length;
             
-            // Uppdatera Pacman-bilderna med nya munvinklar
-            if (pacmanVelocityX > 0 || (pacmanVelocityX == 0 && pacmanVelocityY == 0)) {
-                pacmanRightImage = GameImages.createPacmanRightImage(mouthAngles[animationFrame]);
-                if (pacmanVelocityX > 0) pacman.image = pacmanRightImage;
-            }
-            if (pacmanVelocityX < 0) {
-                pacmanLeftImage = GameImages.createPacmanLeftImage(mouthAngles[animationFrame]);
-                pacman.image = pacmanLeftImage;
-            }
-            if (pacmanVelocityY < 0) {
-                pacmanUpImage = GameImages.createPacmanUpImage(mouthAngles[animationFrame]);
-                pacman.image = pacmanUpImage;
-            }
-            if (pacmanVelocityY > 0) {
-                pacmanDownImage = GameImages.createPacmanDownImage(mouthAngles[animationFrame]);
-                pacman.image = pacmanDownImage;
-            }
-        }
-    }
-    
-    private void moveGhosts() {
-        for (Block ghost : ghosts) {
-            // Avgör riktning (mot pacman eller slumpmässigt)
-            int dirX = 0;
-            int dirY = 0;
-            
-            // 70% chans att spöken rör sig mot Pacman, 30% slumpmässigt
-            if (random.nextDouble() < 0.7) {
-                // Rörelse mot Pacman
-                if (ghost.x < pacman.x) dirX = 1;
-                else if (ghost.x > pacman.x) dirX = -1;
-                
-                if (ghost.y < pacman.y) dirY = 1;
-                else if (ghost.y > pacman.y) dirY = -1;
-            } else {
-                // Slumpmässig rörelse
-                int randomDir = random.nextInt(4);
-                if (randomDir == 0) dirX = 1;      // höger
-                else if (randomDir == 1) dirX = -1; // vänster
-                else if (randomDir == 2) dirY = 1;  // ner
-                else dirY = -1;                    // upp
+            // Animera Pac-Man om han rör sig
+            if (pacmanVelocityX != 0 || pacmanVelocityY != 0) {
+                animationCounter++;
+                if (animationCounter >= animationSpeed) {
+                    pacManMouthOpen = !pacManMouthOpen;
+                    animationCounter = 0;
+                    
+                    // Uppdatera Pac-Man-bilden baserat på riktning och om munnen är öppen
+                    if (pacManMouthOpen) {
+                        pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
+                    } else {
+                        pacman.image = pacManImages[pacManDirection*2 + 1]; // Stängd mun
+                    }
+                }
             }
             
-            // Om både x och y har rörelse, välj endast en riktning (för att undvika diagonal rörelse)
-            if (dirX != 0 && dirY != 0) {
-                if (random.nextBoolean()) dirX = 0;
-                else dirY = 0;
-            }
-            
-            // Beräkna ny position
-            int newX = ghost.x + dirX * ghostSpeed;
-            int newY = ghost.y + dirY * ghostSpeed;
-            
-            // Kontrollera kollision med väggar
-            boolean collision = false;
-            for (Block wall : walls) {
-                if (newX < wall.x + wall.width && 
-                    newX + ghost.width > wall.x && 
-                    newY < wall.y + wall.height && 
-                    newY + ghost.height > wall.y) {
-                    collision = true;
+            // Kontrollera om Pac-Man äter mat
+            Iterator<Block> foodIterator = foods.iterator();
+            while (foodIterator.hasNext()) {
+                Block food = foodIterator.next();
+                if (pacman.x < food.x + food.width && 
+                    pacman.x + pacman.width > food.x && 
+                    pacman.y < food.y + food.height && 
+                    pacman.y + pacman.height > food.y) {
+                    foodIterator.remove();
+                    score += 10;
+                    soundManager.play("eat");
                     break;
                 }
             }
             
-            // Uppdatera position om ingen kollision
-            if (!collision) {
-                ghost.x = newX;
-                ghost.y = newY;
+            // Kontrollera om Pac-Man äter power pellet
+            Iterator<Block> powerPelletIterator = powerPellets.iterator();
+            while (powerPelletIterator.hasNext()) {
+                Block powerPellet = powerPelletIterator.next();
+                if (pacman.x < powerPellet.x + powerPellet.width && 
+                    pacman.x + pacman.width > powerPellet.x && 
+                    pacman.y < powerPellet.y + powerPellet.height && 
+                    pacman.y + pacman.height > powerPellet.y) {
+                    powerPelletIterator.remove();
+                    score += 50;
+                    ghostsScared = true;
+                    scaredTimer = 0;
+                    soundManager.play("power");
+                    
+                    // Ändra spökenas utseende
+                    for (Block ghost : ghosts) {
+                        ghost.image = scaredGhostImage;
+                    }
+                    break;
+                }
             }
         }
     }
     
+    private void updateAnimation() {
+        // Uppdatera animationsramen
+        animationCounter++;
+        if (animationCounter >= animationSpeed) {
+            pacManMouthOpen = !pacManMouthOpen;
+            animationCounter = 0;
+            
+            // Uppdatera Pac-Man-bilden baserat på riktning och munöppning
+            if (pacmanVelocityX != 0 || pacmanVelocityY != 0) {
+                int imageIndex = pacManDirection * 2;
+                if (!pacManMouthOpen) {
+                    imageIndex += 1;
+                }
+                pacman.image = pacManImages[imageIndex];
+            }
+        }
+    }
+    
+    private void updateGhosts() {
+        // Uppdatera timer för att släppa ut spöken
+        ghostReleaseTimer++;
+        
+        // Begränsa antalet spöken till 4
+        int maxGhosts = 4;
+        int ghostIndex = 0;
+        
+        for (Block ghost : ghosts) {
+            // Hoppa över spöken om vi redan har 4 aktiva
+            if (ghostIndex >= maxGhosts) {
+                break;
+            }
+            
+            // Kontrollera om spöket ska vara kvar i spökgården
+            if (ghostIndex < ghostsReleased.length && !ghostsReleased[ghostIndex]) {
+                // Släpp ut spöken med jämna mellanrum
+                if (ghostReleaseTimer >= ghostReleaseInterval * (ghostIndex + 1)) {
+                    ghostsReleased[ghostIndex] = true;
+                }
+                
+                // Låt spöket röra sig lite upp och ner i spökgården medan det väntar
+                if (ghostReleaseTimer % 40 < 20) {
+                    ghost.y += 1;
+                } else {
+                    ghost.y -= 1;
+                }
+                
+                ghostIndex++;
+                continue; // Gå till nästa spöke
+            }
+            
+            // Tvinga ut spöken från spökgården om de fastnat
+            if (isGhostInCage(ghost)) {
+                // Flytta spöket uppåt för att komma ut ur spökgården
+                ghost.y -= ghostSpeed * 2;
+                ghostIndex++;
+                continue;
+            }
+            
+            // Spökrörelser när de är ute ur spökgården
+            if (!ghostsScared) {
+                // Olika beteende baserat på spökfärg
+                if (ghostIndex == 0) { // Rött spöke (Blinky) - jagar Pac-Man direkt
+                    moveGhostTowardsPacman(ghost, 0.9);
+                } else if (ghostIndex == 1) { // Rosa spöke (Pinky) - försöker gå framför Pac-Man
+                    moveGhostAhead(ghost, 0.8);
+                } else if (ghostIndex == 2) { // Blått spöke (Inky) - kombination av Blinky och slumpmässighet
+                    if (random.nextInt(100) < 70) {
+                        moveGhostTowardsPacman(ghost, 0.7);
+                    } else {
+                        moveGhostRandomly(ghost);
+                    }
+                } else { // Orange spöke (Clyde) - mest slumpmässigt
+                    if (random.nextInt(100) < 50) {
+                        moveGhostTowardsPacman(ghost, 0.5);
+                    } else {
+                        moveGhostRandomly(ghost);
+                    }
+                }
+            } else {
+                // När spökena är skrämda, rör de sig slumpmässigt
+                moveGhostRandomly(ghost);
+            }
+            
+            ghostIndex++;
+        }
+    }
+    
+    // Kontrollera om spöket är i spökgården
+    private boolean isGhostInCage(Block ghost) {
+        // Definiera spökgårdens område baserat på kartan
+        int cageMinX = 13 * tileSize;
+        int cageMaxX = 17 * tileSize;
+        int cageMinY = 8 * tileSize;
+        int cageMaxY = 10 * tileSize;
+        
+        return ghost.x >= cageMinX && ghost.x <= cageMaxX && 
+               ghost.y >= cageMinY && ghost.y <= cageMaxY;
+    }
+    
+    private void moveGhostTowardsPacman(Block ghost, double chanceToFollow) {
+        if (pacman == null) return;
+        
+        // Beräkna riktning mot Pac-Man
+        int dx = 0;
+        int dy = 0;
+        
+        // Bestäm riktning baserat på Pac-Man's position
+        if (random.nextDouble() < chanceToFollow) {
+            if (ghost.x < pacman.x) dx = ghostSpeed;
+            else if (ghost.x > pacman.x) dx = -ghostSpeed;
+            else if (ghost.y < pacman.y) dy = ghostSpeed;
+            else if (ghost.y > pacman.y) dy = -ghostSpeed;
+        } else {
+            // Slumpmässig rörelse ibland
+            moveGhostRandomly(ghost);
+            return;
+        }
+        
+        // Kontrollera kollision med väggar innan rörelse
+        int newX = ghost.x + dx;
+        int newY = ghost.y + dy;
+        
+        boolean collision = false;
+        for (Block wall : walls) {
+            if (newX < wall.x + wall.width && 
+                newX + ghost.width > wall.x && 
+                newY < wall.y + wall.height && 
+                newY + ghost.height > wall.y) {
+                collision = true;
+                break;
+            }
+        }
+        
+        // Uppdatera position om ingen kollision
+        if (!collision) {
+            ghost.x = newX;
+            ghost.y = newY;
+        } else {
+            // Om kollision, prova att röra sig i en annan riktning
+            moveGhostRandomly(ghost);
+        }
+        
+        // Hantera tunnlar på sidorna
+        if (ghost.x < 0) {
+            ghost.x = boardWidth - ghost.width;
+        } else if (ghost.x > boardWidth - ghost.width) {
+            ghost.x = 0;
+        }
+    }
+    
+    private void moveGhostAhead(Block ghost, double chanceToPredict) {
+        if (pacman == null) return;
+        
+        // Beräkna en position framför Pac-Man baserat på hans riktning
+        int targetX = pacman.x;
+        int targetY = pacman.y;
+        
+        // Förutse Pac-Man's position
+        if (random.nextDouble() < chanceToPredict) {
+            int predictionDistance = 4 * tileSize; // Hur långt framför vi siktar
+            
+            if (pacmanVelocityX > 0) targetX += predictionDistance;
+            else if (pacmanVelocityX < 0) targetX -= predictionDistance;
+            else if (pacmanVelocityY > 0) targetY += predictionDistance;
+            else if (pacmanVelocityY < 0) targetY -= predictionDistance;
+        }
+        
+        // Beräkna riktning mot målet
+        int dx = 0;
+        int dy = 0;
+        
+        if (ghost.x < targetX) dx = ghostSpeed;
+        else if (ghost.x > targetX) dx = -ghostSpeed;
+        else if (ghost.y < targetY) dy = ghostSpeed;
+        else if (ghost.y > targetY) dy = -ghostSpeed;
+        
+        // Kontrollera kollision med väggar innan rörelse
+        int newX = ghost.x + dx;
+        int newY = ghost.y + dy;
+        
+        boolean collision = false;
+        for (Block wall : walls) {
+            if (newX < wall.x + wall.width && 
+                newX + ghost.width > wall.x && 
+                newY < wall.y + wall.height && 
+                newY + ghost.height > wall.y) {
+                collision = true;
+                break;
+            }
+        }
+        
+        // Uppdatera position om ingen kollision
+        if (!collision) {
+            ghost.x = newX;
+            ghost.y = newY;
+        } else {
+            // Om kollision, prova att röra sig i en annan riktning
+            moveGhostRandomly(ghost);
+        }
+        
+        // Hantera tunnlar på sidorna
+        if (ghost.x < 0) {
+            ghost.x = boardWidth - ghost.width;
+        } else if (ghost.x > boardWidth - ghost.width) {
+            ghost.x = 0;
+        }
+    }
+    
+    private void moveGhostRandomly(Block ghost) {
+        // Slumpmässig riktning
+        int direction = random.nextInt(4);
+        int dx = 0;
+        int dy = 0;
+        
+        switch (direction) {
+            case 0: dx = ghostSpeed; break;  // Höger
+            case 1: dy = ghostSpeed; break;  // Ner
+            case 2: dx = -ghostSpeed; break; // Vänster
+            case 3: dy = -ghostSpeed; break; // Upp
+        }
+        
+        // Kontrollera kollision med väggar innan rörelse
+        int newX = ghost.x + dx;
+        int newY = ghost.y + dy;
+        
+        boolean collision = false;
+        for (Block wall : walls) {
+            if (newX < wall.x + wall.width && 
+                newX + ghost.width > wall.x && 
+                newY < wall.y + wall.height && 
+                newY + ghost.height > wall.y) {
+                collision = true;
+                break;
+            }
+        }
+        
+        // Uppdatera position om ingen kollision
+        if (!collision) {
+            ghost.x = newX;
+            ghost.y = newY;
+        }
+        
+        // Hantera tunnlar på sidorna
+        if (ghost.x < 0) {
+            ghost.x = boardWidth - ghost.width;
+        } else if (ghost.x > boardWidth - ghost.width) {
+            ghost.x = 0;
+        }
+    }
+    
     private void checkGhostCollision() {
-        if (gameOver) return;
+        if (gameOver || pacman == null) return;
+        
+        HashSet<Block> ghostsToRemove = new HashSet<>();
         
         for (Block ghost : ghosts) {
             if (pacman.x < ghost.x + ghost.width && 
@@ -467,25 +711,49 @@ public class PacMan extends JPanel {
                 pacman.y < ghost.y + ghost.height && 
                 pacman.y + pacman.height > ghost.y) {
                 
-                lives--;
-                
-                // Spela dödsljud
-                soundManager.play("death");
-                
-                if (lives <= 0) {
-                    gameOver = true;
-                    gameTimer.stop();
-                    soundManager.play("gameover");
+                if (ghostsScared) {
+                    // Pacman äter spöket
+                    ghostsToRemove.add(ghost);
+                    score += 200;
+                    
+                    // Spela spökätningsljud
+                    soundManager.play("ghost");
                 } else {
-                    // Återställ Pacman till startposition
-                    pacman.x = pacman.startX;
-                    pacman.y = pacman.startY;
-                    pacmanVelocityX = 0;
-                    pacmanVelocityY = 0;
+                    // Spöket äter Pacman
+                    lives--;
+                    
+                    // Spela dödsljud
+                    soundManager.play("death");
+                    
+                    if (lives <= 0) {
+                        gameOver = true;
+                        gameTimer.stop();
+                        soundManager.play("gameover");
+                    } else {
+                        // Återställ Pacman till startposition
+                        pacman.x = pacman.startX;
+                        pacman.y = pacman.startY;
+                        pacmanVelocityX = 0;
+                        pacmanVelocityY = 0;
+                    }
+                    
+                    break;
                 }
-                
-                break;
             }
+        }
+        
+        // Ta bort uppätna spöken
+        ghosts.removeAll(ghostsToRemove);
+    }
+    
+    private void checkLevelComplete() {
+        if (foods.isEmpty() && powerPellets.isEmpty()) {
+            gameWon = true;
+            gameOver = true;
+            gameTimer.stop();
+            
+            // Spela vinstljud
+            soundManager.play("win");
         }
     }
     

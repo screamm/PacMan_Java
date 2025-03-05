@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "App",
+            "request": "launch",
+            "mainClass": "App",
+            "projectName": "PacManJava_a059f749"
+        },
+        {
+            "type": "java",
+            "name": "PacMan",
+            "request": "launch",
+            "mainClass": "App",
+            "projectName": "PacManJava",
+            "sourcePaths": [
+                "src"
+            ],
+            "classPaths": [
+                "bin",
+                "lib/**/*.jar"
+            ]
+        }
+    ]
+} 

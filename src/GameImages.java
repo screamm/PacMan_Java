@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage;
 public class GameImages {
     
     // Ökad bildstorlek för bättre visuellt uttryck
-    private static final int IMAGE_SIZE = 64; // Dubbelt så stor (från 32 till 64)
+    private static final int IMAGE_SIZE = 40; // Större storlek för att matcha den nya banstorleken
     
     // Pacman-bilder i olika riktningar
     public static Image createPacmanRightImage(double mouthAngle) {
@@ -18,12 +18,12 @@ public class GameImages {
         // Rita Pacman med ljusgul färg
         g2d.setColor(new Color(255, 255, 0)); // Ren gul
         
-        // Räkna ut vinklar för öppning (i grader)
-        double startAngle = mouthAngle / 2.0;
-        double arcAngle = 360.0 - mouthAngle;
+        // Räkna ut vinklar för öppning (i grader) - mer vågrät mun
+        double startAngle = 30; // Större värde ger mer vågrät mun
+        double arcAngle = 300; // Mindre värde ger större öppning
         
         // Rita en cirkel med en "bit" borttagen
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
                 startAngle, arcAngle, Arc2D.PIE));
         
         // Lägg till en subtil gradient för mer visuellt djup
@@ -34,7 +34,7 @@ public class GameImages {
             new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
         );
         g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(8.0, 8.0, IMAGE_SIZE-16, IMAGE_SIZE-16, 
+        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
                 startAngle, arcAngle, Arc2D.PIE));
                 
         g2d.dispose();
@@ -47,10 +47,12 @@ public class GameImages {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         g2d.setColor(new Color(255, 255, 0)); // Ren gul
-        double startAngle = 180.0 - (mouthAngle / 2.0);
-        double arcAngle = 360.0 - mouthAngle;
         
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        // Mer vågrät mun
+        double startAngle = 150;
+        double arcAngle = 300;
+        
+        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
                 startAngle, arcAngle, Arc2D.PIE));
         
         // Lägg till en subtil gradient för mer visuellt djup
@@ -61,9 +63,9 @@ public class GameImages {
             new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
         );
         g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(8.0, 8.0, IMAGE_SIZE-16, IMAGE_SIZE-16, 
+        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
                 startAngle, arcAngle, Arc2D.PIE));
-        
+                
         g2d.dispose();
         return image;
     }
@@ -74,10 +76,12 @@ public class GameImages {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         g2d.setColor(new Color(255, 255, 0)); // Ren gul
-        double startAngle = 90.0 - (mouthAngle / 2.0);
-        double arcAngle = 360.0 - mouthAngle;
         
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        // Mer vågrät mun
+        double startAngle = 240;
+        double arcAngle = 300;
+        
+        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
                 startAngle, arcAngle, Arc2D.PIE));
         
         // Lägg till en subtil gradient för mer visuellt djup
@@ -88,9 +92,9 @@ public class GameImages {
             new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
         );
         g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(8.0, 8.0, IMAGE_SIZE-16, IMAGE_SIZE-16, 
+        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
                 startAngle, arcAngle, Arc2D.PIE));
-        
+                
         g2d.dispose();
         return image;
     }
@@ -101,10 +105,12 @@ public class GameImages {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         g2d.setColor(new Color(255, 255, 0)); // Ren gul
-        double startAngle = 270.0 - (mouthAngle / 2.0);
-        double arcAngle = 360.0 - mouthAngle;
         
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        // Mer vågrät mun
+        double startAngle = 300;
+        double arcAngle = 300;
+        
+        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
                 startAngle, arcAngle, Arc2D.PIE));
         
         // Lägg till en subtil gradient för mer visuellt djup
@@ -115,82 +121,115 @@ public class GameImages {
             new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
         );
         g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(8.0, 8.0, IMAGE_SIZE-16, IMAGE_SIZE-16, 
+        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
                 startAngle, arcAngle, Arc2D.PIE));
-        
+                
         g2d.dispose();
         return image;
     }
     
-    // Spök-bilder
+    // Generisk spökbild med anpassad färg
     public static Image createGhostImage(Color mainColor) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Skapa en ljusare version av huvudfärgen för gradient
-        Color lighterColor = lighten(mainColor, 0.3f);
+        // Kropp (övre halvan är en oval, nedre halvan är en rektangel med vågig botten)
+        g2d.setColor(mainColor);
         
-        // Övre del (rundad rektangel) med gradient
-        GradientPaint gradient = new GradientPaint(
-            0, 0, lighterColor,
-            0, IMAGE_SIZE, mainColor
-        );
-        g2d.setPaint(gradient);
-        g2d.fillRoundRect(4, 4, IMAGE_SIZE-8, (int)((IMAGE_SIZE/3)*2), IMAGE_SIZE/2, IMAGE_SIZE/2);
+        // Rita huvuddelen av spöket (rektangel med rundade hörn)
+        g2d.fillRoundRect(4, IMAGE_SIZE/2, IMAGE_SIZE-8, IMAGE_SIZE/2-4, 8, 8);
         
-        // Undre del (vågig kant)
-        int waveHeight = IMAGE_SIZE / 6;
-        int numWaves = 3;
-        int waveWidth = (IMAGE_SIZE - 8) / numWaves;
+        // Rita den övre delen (oval)
+        g2d.fillOval(4, 4, IMAGE_SIZE-8, IMAGE_SIZE/2+4);
         
-        // Skapa en "vågig" underkant för spöket
-        Path2D path = new Path2D.Double();
-        path.moveTo(4, (IMAGE_SIZE/3)*2);
+        // Rita den vågiga botten
+        int waveHeight = 4;
+        int segments = 3;
+        int segmentWidth = (IMAGE_SIZE-8) / segments;
         
-        for (int i = 0; i < numWaves; i++) {
-            double x1 = 4 + i * waveWidth;
-            double x2 = 4 + (i + 0.5) * waveWidth;
-            double x3 = 4 + (i + 1) * waveWidth;
-            
-            path.lineTo(x1, (IMAGE_SIZE/3)*2);
-            path.lineTo(x2, (IMAGE_SIZE/3)*2 + waveHeight);
-            path.lineTo(x3, (IMAGE_SIZE/3)*2);
+        for (int i = 0; i < segments; i++) {
+            int x = 4 + i * segmentWidth;
+            g2d.fillArc(x, IMAGE_SIZE-waveHeight*2, segmentWidth, waveHeight*2, 0, 180);
         }
         
-        path.lineTo(IMAGE_SIZE-4, (IMAGE_SIZE/3)*2);
-        path.lineTo(IMAGE_SIZE-4, IMAGE_SIZE-4);
-        path.lineTo(4, IMAGE_SIZE-4);
-        path.closePath();
-        
-        g2d.fill(path);
-        
-        // Ögon (större och mer detaljerade)
-        // Vit del av ögonen
+        // Ögon (vita)
         g2d.setColor(Color.WHITE);
-        g2d.fillOval(IMAGE_SIZE/5, IMAGE_SIZE/3, IMAGE_SIZE/4, IMAGE_SIZE/4);
-        g2d.fillOval(IMAGE_SIZE*3/5, IMAGE_SIZE/3, IMAGE_SIZE/4, IMAGE_SIZE/4);
+        g2d.fillOval(IMAGE_SIZE/4-2, IMAGE_SIZE/3-2, 10, 10);
+        g2d.fillOval(3*IMAGE_SIZE/4-8, IMAGE_SIZE/3-2, 10, 10);
         
-        // Blå iris
-        g2d.setColor(new Color(70, 130, 255));
-        g2d.fillOval(IMAGE_SIZE/5 + IMAGE_SIZE/16, IMAGE_SIZE/3 + IMAGE_SIZE/16, 
-                    IMAGE_SIZE/6, IMAGE_SIZE/6);
-        g2d.fillOval(IMAGE_SIZE*3/5 + IMAGE_SIZE/16, IMAGE_SIZE/3 + IMAGE_SIZE/16, 
-                    IMAGE_SIZE/6, IMAGE_SIZE/6);
+        // Pupiller (blå)
+        g2d.setColor(Color.BLUE);
+        g2d.fillOval(IMAGE_SIZE/4, IMAGE_SIZE/3, 6, 6);
+        g2d.fillOval(3*IMAGE_SIZE/4-6, IMAGE_SIZE/3, 6, 6);
         
-        // Svart pupill
-        g2d.setColor(Color.BLACK);
-        g2d.fillOval(IMAGE_SIZE/5 + IMAGE_SIZE/10, IMAGE_SIZE/3 + IMAGE_SIZE/10, 
-                    IMAGE_SIZE/12, IMAGE_SIZE/12);
-        g2d.fillOval(IMAGE_SIZE*3/5 + IMAGE_SIZE/10, IMAGE_SIZE/3 + IMAGE_SIZE/10, 
-                    IMAGE_SIZE/12, IMAGE_SIZE/12);
+        g2d.dispose();
+        return image;
+    }
+    
+    // Rött spöke (Blinky)
+    public static Image createRedGhostImage() {
+        return createGhostImage(new Color(255, 0, 0)); // Blinky - röd
+    }
+    
+    // Rosa spöke (Pinky)
+    public static Image createPinkGhostImage() {
+        return createGhostImage(new Color(255, 182, 255)); // Pinky - rosa
+    }
+    
+    // Blått spöke (Inky)
+    public static Image createBlueGhostImage() {
+        return createGhostImage(new Color(0, 255, 255)); // Inky - cyan
+    }
+    
+    // Orange spöke (Clyde)
+    public static Image createOrangeGhostImage() {
+        return createGhostImage(new Color(255, 165, 0)); // Clyde - orange
+    }
+    
+    // Cyan spöke (Inky)
+    public static Image createCyanGhostImage() {
+        return createGhostImage(new Color(0, 255, 255)); // Cyan färg
+    }
+    
+    // Skrämt spöke
+    public static Image createScaredGhostImage() {
+        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Ljusreflektion i ögonen (liten vit prick)
+        // Kropp (mörkblå)
+        g2d.setColor(new Color(0, 0, 150));
+        
+        // Rita huvuddelen av spöket (rektangel med rundade hörn)
+        g2d.fillRoundRect(4, IMAGE_SIZE/2, IMAGE_SIZE-8, IMAGE_SIZE/2-4, 8, 8);
+        
+        // Rita den övre delen (oval)
+        g2d.fillOval(4, 4, IMAGE_SIZE-8, IMAGE_SIZE/2+4);
+        
+        // Rita den vågiga botten
+        int waveHeight = 4;
+        int segments = 3;
+        int segmentWidth = (IMAGE_SIZE-8) / segments;
+        
+        for (int i = 0; i < segments; i++) {
+            int x = 4 + i * segmentWidth;
+            g2d.fillArc(x, IMAGE_SIZE-waveHeight*2, segmentWidth, waveHeight*2, 0, 180);
+        }
+        
+        // Ögon (vita)
         g2d.setColor(Color.WHITE);
-        g2d.fillOval(IMAGE_SIZE/5 + IMAGE_SIZE/9, IMAGE_SIZE/3 + IMAGE_SIZE/12, 
-                    IMAGE_SIZE/30, IMAGE_SIZE/30);
-        g2d.fillOval(IMAGE_SIZE*3/5 + IMAGE_SIZE/9, IMAGE_SIZE/3 + IMAGE_SIZE/12, 
-                    IMAGE_SIZE/30, IMAGE_SIZE/30);
+        g2d.fillOval(IMAGE_SIZE/4-2, IMAGE_SIZE/3-2, 10, 10);
+        g2d.fillOval(3*IMAGE_SIZE/4-8, IMAGE_SIZE/3-2, 10, 10);
+        
+        // Mun (vit)
+        g2d.setColor(Color.WHITE);
+        int mouthY = IMAGE_SIZE/2 + 4;
+        g2d.drawLine(IMAGE_SIZE/3, mouthY, IMAGE_SIZE/3+2, mouthY+2);
+        g2d.drawLine(IMAGE_SIZE/3+2, mouthY+2, IMAGE_SIZE/3+4, mouthY);
+        g2d.drawLine(IMAGE_SIZE/3+4, mouthY, IMAGE_SIZE/3+6, mouthY+2);
+        g2d.drawLine(IMAGE_SIZE/3+6, mouthY+2, IMAGE_SIZE/3+8, mouthY);
+        g2d.drawLine(IMAGE_SIZE/3+8, mouthY, IMAGE_SIZE/3+10, mouthY+2);
         
         g2d.dispose();
         return image;
@@ -202,122 +241,123 @@ public class GameImages {
         Graphics2D g2d = image.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Basstruktur (mörkare blå)
-        Color darkBlue = new Color(0, 20, 80);
+        // Skapa en mörkblå färg för väggarna (mer lik originalspelet)
+        Color darkBlue = new Color(0, 0, 128);
+        Color lightBlue = new Color(0, 0, 255);
+        
+        // Fyll hela rutan med mörkblå
         g2d.setColor(darkBlue);
         g2d.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
         
-        // Lägg till textur (tegelmönster)
-        int brickHeight = IMAGE_SIZE / 4;
-        int brickWidth = IMAGE_SIZE / 2;
+        // Lägg till en ljusblå kant för att ge väggarna ett glödande utseende
+        g2d.setColor(lightBlue);
+        g2d.setStroke(new BasicStroke(2.0f));
+        g2d.drawRect(1, 1, IMAGE_SIZE-2, IMAGE_SIZE-2);
         
-        // Rita tegelstenar
-        g2d.setColor(new Color(0, 50, 150)); // Ljusare blå
-        
-        for (int y = 0; y < IMAGE_SIZE; y += brickHeight) {
-            int offset = (y % (brickHeight * 2) == 0) ? 0 : brickWidth / 2;
-            
-            for (int x = -brickWidth / 2; x < IMAGE_SIZE; x += brickWidth) {
-                g2d.fillRect(x + offset, y, brickWidth - 2, brickHeight - 2);
-            }
-        }
-        
-        // Lägg till skugga och ljus för 3D-effekt
-        Color highlight = new Color(30, 144, 255, 120); // Ljusblå halvgenomskinlig
-        g2d.setColor(highlight);
-        
-        // Övre och vänster kant (ljus)
-        g2d.fillRect(0, 0, IMAGE_SIZE, 2);
-        g2d.fillRect(0, 0, 2, IMAGE_SIZE);
-        
-        Color shadow = new Color(0, 0, 40, 120); // Mörk halvgenomskinlig
-        g2d.setColor(shadow);
-        
-        // Undre och höger kant (skugga)
-        g2d.fillRect(0, IMAGE_SIZE - 2, IMAGE_SIZE, 2);
-        g2d.fillRect(IMAGE_SIZE - 2, 0, 2, IMAGE_SIZE);
+        // Lägg till en subtil gradient för mer djup
+        GradientPaint gradient = new GradientPaint(
+            0, 0, new Color(0, 0, 180, 150),
+            IMAGE_SIZE, IMAGE_SIZE, new Color(0, 0, 100, 150)
+        );
+        g2d.setPaint(gradient);
+        g2d.fillRect(3, 3, IMAGE_SIZE-6, IMAGE_SIZE-6);
         
         g2d.dispose();
         return image;
     }
     
-    // Matprickar (pellets)
+    // Mat-bild (pellet)
     public static Image createFoodImage() {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Rita en liten gul cirkel med gradient
-        int pelletsSize = IMAGE_SIZE / 6;
+        // Skapa en liten vit prick i mitten (som i originalspelet)
+        int dotSize = IMAGE_SIZE / 8; // Mindre prick
+        int dotX = (IMAGE_SIZE - dotSize) / 2;
+        int dotY = (IMAGE_SIZE - dotSize) / 2;
         
-        // Skapa en radiell gradient för mer visuellt intresse
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
-            pelletsSize,
-            new float[] { 0.0f, 1.0f },
-            new Color[] { new Color(255, 255, 200), new Color(255, 255, 0) }
-        );
+        // Rita en vit cirkel
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(dotX, dotY, dotSize, dotSize);
         
-        g2d.setPaint(paint);
-        g2d.fillOval(
-            IMAGE_SIZE/2 - pelletsSize/2, 
-            IMAGE_SIZE/2 - pelletsSize/2, 
-            pelletsSize, 
-            pelletsSize
-        );
+        // Lägg till en subtil glöd
+        g2d.setColor(new Color(255, 255, 255, 100));
+        g2d.fillOval(dotX - 1, dotY - 1, dotSize + 2, dotSize + 2);
         
         g2d.dispose();
         return image;
     }
     
-    // Power pellet (stor matbit)
+    // Power Pellet-bild
     public static Image createPowerPelletImage() {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Rita en större gul cirkel med pulsliknande effekt
-        int powerPelletSize = IMAGE_SIZE / 3;
+        // Skapa en större vit prick i mitten (som i originalspelet)
+        int dotSize = IMAGE_SIZE / 3; // Större prick för power pellet
+        int dotX = (IMAGE_SIZE - dotSize) / 2;
+        int dotY = (IMAGE_SIZE - dotSize) / 2;
         
-        // Använd en radiell gradient för glödeffekt
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
-            powerPelletSize,
-            new float[] { 0.0f, 0.7f, 1.0f },
-            new Color[] { 
-                new Color(255, 255, 255), 
-                new Color(255, 255, 0), 
-                new Color(255, 200, 0, 100) 
-            }
-        );
+        // Rita en vit cirkel
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(dotX, dotY, dotSize, dotSize);
         
-        g2d.setPaint(paint);
-        g2d.fillOval(
-            IMAGE_SIZE/2 - powerPelletSize/2, 
-            IMAGE_SIZE/2 - powerPelletSize/2, 
-            powerPelletSize, 
-            powerPelletSize
-        );
-        
-        // Lägg till en yttre cirkel för glödeffekt
-        g2d.setColor(new Color(255, 255, 0, 30));
-        g2d.setStroke(new BasicStroke(3));
-        g2d.drawOval(
-            IMAGE_SIZE/2 - powerPelletSize/2 - 3, 
-            IMAGE_SIZE/2 - powerPelletSize/2 - 3, 
-            powerPelletSize + 6, 
-            powerPelletSize + 6
-        );
+        // Lägg till en subtil glöd
+        g2d.setColor(new Color(255, 255, 255, 100));
+        g2d.fillOval(dotX - 2, dotY - 2, dotSize + 4, dotSize + 4);
         
         g2d.dispose();
         return image;
     }
     
-    // Hjälpmetod för att skapa ljusare versioner av färger
-    private static Color lighten(Color color, float amount) {
-        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
-        hsb[1] = Math.max(0, Math.min(1, hsb[1] - amount)); // Minska mättnad
-        hsb[2] = Math.min(1, hsb[2] + amount); // Öka ljusstyrka
-        return new Color(Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]));
+    // Pac-Man-bild med olika munöppningar
+    public static Image createPacManImage(int direction, boolean mouthOpen) {
+        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Skapa en gul cirkel för Pac-Man
+        int pacManSize = (int)(IMAGE_SIZE * 0.8);
+        int x = (IMAGE_SIZE - pacManSize) / 2;
+        int y = (IMAGE_SIZE - pacManSize) / 2;
+        
+        // Gul färg för Pac-Man
+        Color pacManColor = new Color(255, 255, 0);
+        g2d.setColor(pacManColor);
+        
+        // Startvinkel och vinkelomfång för munnen
+        int startAngle = 0;
+        int arcAngle = mouthOpen ? 300 : 360; // Om munnen är öppen: 300 grader, annars hel cirkel
+        
+        // Justera startvinkel baserat på riktning
+        if (mouthOpen) {
+            switch (direction) {
+                case 0: // Höger
+                    startAngle = 330;
+                    break;
+                case 1: // Ner
+                    startAngle = 60;
+                    break;
+                case 2: // Vänster
+                    startAngle = 150;
+                    break;
+                case 3: // Upp
+                    startAngle = 240;
+                    break;
+            }
+        }
+        
+        // Rita Pac-Man-kroppen
+        g2d.fillArc(x, y, pacManSize, pacManSize, startAngle, arcAngle);
+        
+        g2d.dispose();
+        return image;
+    }
+    
+    // Överlagrad metod för bakåtkompatibilitet
+    public static Image createPacManImage(int direction) {
+        return createPacManImage(direction, true); // Standard är öppen mun
     }
 }
