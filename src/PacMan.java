@@ -40,14 +40,14 @@ public class PacMan extends JPanel {
 
     private int pacmanVelocityX = 0;
     private int pacmanVelocityY = 0;
-    private int pacmanSpeed = 3; // Anpassad hastighet
+    private int pacmanSpeed = 5; // Ökar hastigheten ytterligare
     private int pacManDirection = 0; // 0=höger, 1=ner, 2=vänster, 3=upp
     private boolean pacManMouthOpen = true;
     private int animationCounter = 0;
-    private int animationSpeed = 3; // Lägre värde = snabbare animation
+    private int animationSpeed = 2; // Snabbare animation
     private Timer gameTimer;
     private Random random = new Random();
-    private int ghostSpeed = 3; // Ökad hastighet för att spökena ska röra sig bättre
+    private int ghostSpeed = 4; // Behåller spökenas hastighet
     private boolean gameOver = false;
     private boolean gameWon = false;
     private int score = 0;
@@ -63,29 +63,29 @@ public class PacMan extends JPanel {
     private Font gameFont = new Font("Arial", Font.BOLD, 30);
     private Font titleFont = new Font("Arial", Font.BOLD, 60);
     
-    // Halverad spelplan för bättre proportioner med större rutor
+    // Förbättrad spelplan med bättre navigering och placering
     private String[] tileMap = {
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XooooooooooooXXoooooooooooooooX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
         "XEXoXXoXXXXXoXXoXXXXXoXXXXXoEoX",
         "XoXoXXoXXXXXoXXoXXXXXoXXXXXoXoX",
-        "XoooooooooooooooooooooooooooooX",
+        "XoooooooooooooPoooooooooooooooX",
         "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
         "XoXXXXoXXooooXXooooXXoXXXXoXoX",
         "XoXXXXoXXoXXoXXoXXoXXoXXXXoXoX",
-        "XooooooXXoXXrbpoXXoXXooooooooX",
+        "XooooooXXoXX    XXoXXooooooooX",
+        "XXXXXXoXXoXX rbp XXoXXoXXXXXXX",
+        "XXXXXXoXXoXX O   XXoXXoXXXXXXX",
         "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
-        "XXXXXXoXXoooooooooooXXoXXXXXXX",
+        "ooooooooooXXXXXXXXXoooooooooo",
         "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
-        "ooooooooooXXX   XXXoooooooooo",
-        "XXXXXXoXXoXXX   XXXoXXoXXXXXXX",
         "XXXXXXoXXoooooooooooXXoXXXXXXX",
         "XXXXXXoXXoXXXXXXXXXoXXoXXXXXXX",
         "XooooooXXooooXXooooXXooooooooX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
-        "XEoXXXooooooPooooooooXXXXXoEoX",
+        "XEoXXXoooooooooooooooXXXXXoEoX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXoXoX",
         "XooooooooooooXXoooooooooooooooX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -99,7 +99,7 @@ public class PacMan extends JPanel {
 
     private boolean[] ghostsReleased = new boolean[10]; // För att hålla reda på vilka spöken som släppts ut
     private int ghostReleaseTimer = 0;
-    private int ghostReleaseInterval = 100; // Minskat intervall för att släppa ut spöken snabbare
+    private int ghostReleaseInterval = 40; // Ytterligare minskat intervall för att släppa ut spöken snabbare
 
     private Image[] ghostImages;
     private Image[] pacManImages;
@@ -192,9 +192,9 @@ public class PacMan extends JPanel {
                     Block ghost = new Block(ghostImages[2], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
                     System.out.println("Lagt till blått spöke på position " + ghost.x + "," + ghost.y);
-                } else if (tile == 'o') {
-                    // Orange spöke - ändra detta till 'O' (stor bokstav) för att skilja från mat
-                    System.out.println("Hittade o på rad " + row + ", kolumn " + col);
+                } else if (tile == 'O') {
+                    // Orange spöke - ändrat från 'o' till 'O' för att skilja från mat
+                    System.out.println("Hittade O på rad " + row + ", kolumn " + col);
                     Block ghost = new Block(ghostImages[3], col * tileSize, row * tileSize, tileSize, tileSize);
                     ghosts.add(ghost);
                     System.out.println("Lagt till orange spöke på position " + ghost.x + "," + ghost.y);
@@ -372,19 +372,22 @@ public class PacMan extends JPanel {
         int newY = pacman.y + pacmanVelocityY;
         
         // Hantera tunnlar på sidorna
-        if (newX < -pacman.width/2) {
-            newX = boardWidth - pacman.width/2;
-        } else if (newX > boardWidth - pacman.width/2) {
-            newX = -pacman.width/2;
+        if (newX < -pacman.width) {
+            newX = boardWidth;
+        } else if (newX > boardWidth) {
+            newX = -pacman.width;
         }
         
         // Kontrollera kollision med väggar
         boolean collision = false;
+        
+        // Använd pixel-baserad kollisionsdetektering med mindre tolerans
+        int collisionTolerance = 5; // Lite tolerans för att göra navigering smidigare
         for (Block wall : walls) {
-            if (newX < wall.x + wall.width && 
-                newX + pacman.width > wall.x && 
-                newY < wall.y + wall.height && 
-                newY + pacman.height > wall.y) {
+            if (newX < wall.x + wall.width - collisionTolerance && 
+                newX + pacman.width - collisionTolerance > wall.x && 
+                newY < wall.y + wall.height - collisionTolerance && 
+                newY + pacman.height - collisionTolerance > wall.y) {
                 collision = true;
                 break;
             }
@@ -447,6 +450,48 @@ public class PacMan extends JPanel {
                     break;
                 }
             }
+        } else {
+            // Om vi kolliderar med en vägg, försök röra i endast en riktning
+            if (pacmanVelocityX != 0 && pacmanVelocityY != 0) {
+                // Försök först med X-riktning
+                newX = pacman.x + pacmanVelocityX;
+                newY = pacman.y;
+                
+                collision = false;
+                for (Block wall : walls) {
+                    if (newX < wall.x + wall.width - collisionTolerance && 
+                        newX + pacman.width - collisionTolerance > wall.x && 
+                        newY < wall.y + wall.height - collisionTolerance && 
+                        newY + pacman.height - collisionTolerance > wall.y) {
+                        collision = true;
+                        break;
+                    }
+                }
+                
+                if (!collision) {
+                    pacman.x = newX;
+                    return;
+                }
+                
+                // Försök sedan med Y-riktning
+                newX = pacman.x;
+                newY = pacman.y + pacmanVelocityY;
+                
+                collision = false;
+                for (Block wall : walls) {
+                    if (newX < wall.x + wall.width - collisionTolerance && 
+                        newX + pacman.width - collisionTolerance > wall.x && 
+                        newY < wall.y + wall.height - collisionTolerance && 
+                        newY + pacman.height - collisionTolerance > wall.y) {
+                        collision = true;
+                        break;
+                    }
+                }
+                
+                if (!collision) {
+                    pacman.y = newY;
+                }
+            }
         }
     }
     
@@ -487,10 +532,11 @@ public class PacMan extends JPanel {
                 // Släpp ut spöken med jämna mellanrum
                 if (ghostReleaseTimer >= ghostReleaseInterval * (ghostIndex + 1)) {
                     ghostsReleased[ghostIndex] = true;
+                    System.out.println("Släpper ut spöke " + ghostIndex);
                 }
                 
                 // Låt spöket röra sig lite upp och ner i spökgården medan det väntar
-                if (ghostReleaseTimer % 40 < 20) {
+                if (ghostReleaseTimer % 30 < 15) {
                     ghost.y += 1;
                 } else {
                     ghost.y -= 1;
@@ -500,10 +546,54 @@ public class PacMan extends JPanel {
                 continue; // Gå till nästa spöke
             }
             
+            // Definiera spökgårdens område
+            int cageMinX = 13 * tileSize;
+            int cageMaxX = 17 * tileSize;
+            int cageMinY = 9 * tileSize - tileSize/2;
+            int cageMaxY = 10 * tileSize + tileSize/2;
+            
             // Tvinga ut spöken från spökgården om de fastnat
-            if (isGhostInCage(ghost)) {
+            if (ghost.x >= cageMinX && ghost.x <= cageMaxX && 
+                ghost.y >= cageMinY && ghost.y <= cageMaxY) {
+                
                 // Flytta spöket uppåt för att komma ut ur spökgården
-                ghost.y -= ghostSpeed * 2;
+                ghost.y -= ghostSpeed;
+                
+                // Se till att spöket inte fastnar i väggarna
+                boolean collision = false;
+                for (Block wall : walls) {
+                    if (ghost.x < wall.x + wall.width && 
+                        ghost.x + ghost.width > wall.x && 
+                        ghost.y < wall.y + wall.height && 
+                        ghost.y + ghost.height > wall.y) {
+                        collision = true;
+                        break;
+                    }
+                }
+                
+                // Om kollision, prova att flytta spöket åt sidan
+                if (collision) {
+                    // Prova att flytta åt vänster
+                    ghost.x -= ghostSpeed;
+                    
+                    // Kolla efter kollision igen
+                    collision = false;
+                    for (Block wall : walls) {
+                        if (ghost.x < wall.x + wall.width && 
+                            ghost.x + ghost.width > wall.x && 
+                            ghost.y < wall.y + wall.height && 
+                            ghost.y + ghost.height > wall.y) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    
+                    // Om fortfarande kollision, prova att flytta åt höger istället
+                    if (collision) {
+                        ghost.x += ghostSpeed * 2; // Återställ och flytta åt höger
+                    }
+                }
+                
                 ghostIndex++;
                 continue;
             }
@@ -529,24 +619,53 @@ public class PacMan extends JPanel {
                     }
                 }
             } else {
-                // När spökena är skrämda, rör de sig slumpmässigt
-                moveGhostRandomly(ghost);
+                // När spökena är skrämda, rör de sig slumpmässigt och försöker undvika Pac-Man
+                if (random.nextInt(100) < 30) {
+                    // Rör sig bort från Pac-Man
+                    int dx = 0;
+                    int dy = 0;
+                    
+                    if (ghost.x < pacman.x) dx = -ghostSpeed;
+                    else if (ghost.x > pacman.x) dx = ghostSpeed;
+                    
+                    if (ghost.y < pacman.y) dy = -ghostSpeed;
+                    else if (ghost.y > pacman.y) dy = ghostSpeed;
+                    
+                    // Välj en av riktningarna för att undvika att fastna i hörn
+                    if (random.nextBoolean() && dx != 0) {
+                        dy = 0;
+                    } else if (dy != 0) {
+                        dx = 0;
+                    }
+                    
+                    // Kontrollera kollisioner och uppdatera position
+                    int newX = ghost.x + dx;
+                    int newY = ghost.y + dy;
+                    
+                    boolean collision = false;
+                    for (Block wall : walls) {
+                        if (newX < wall.x + wall.width && 
+                            newX + ghost.width > wall.x && 
+                            newY < wall.y + wall.height && 
+                            newY + ghost.height > wall.y) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!collision) {
+                        ghost.x = newX;
+                        ghost.y = newY;
+                    } else {
+                        moveGhostRandomly(ghost);
+                    }
+                } else {
+                    moveGhostRandomly(ghost);
+                }
             }
             
             ghostIndex++;
         }
-    }
-    
-    // Kontrollera om spöket är i spökgården
-    private boolean isGhostInCage(Block ghost) {
-        // Definiera spökgårdens område baserat på kartan
-        int cageMinX = 13 * tileSize;
-        int cageMaxX = 17 * tileSize;
-        int cageMinY = 8 * tileSize;
-        int cageMaxY = 10 * tileSize;
-        
-        return ghost.x >= cageMinX && ghost.x <= cageMaxX && 
-               ghost.y >= cageMinY && ghost.y <= cageMaxY;
     }
     
     private void moveGhostTowardsPacman(Block ghost, double chanceToFollow) {
@@ -558,10 +677,27 @@ public class PacMan extends JPanel {
         
         // Bestäm riktning baserat på Pac-Man's position
         if (random.nextDouble() < chanceToFollow) {
-            if (ghost.x < pacman.x) dx = ghostSpeed;
-            else if (ghost.x > pacman.x) dx = -ghostSpeed;
-            else if (ghost.y < pacman.y) dy = ghostSpeed;
-            else if (ghost.y > pacman.y) dy = -ghostSpeed;
+            // Prioritera den riktning där avståndet är störst
+            int xDiff = Math.abs(ghost.x - pacman.x);
+            int yDiff = Math.abs(ghost.y - pacman.y);
+            
+            if (xDiff > yDiff) {
+                // Rör sig först i x-led
+                if (ghost.x < pacman.x) dx = ghostSpeed;
+                else if (ghost.x > pacman.x) dx = -ghostSpeed;
+            } else {
+                // Rör sig först i y-led
+                if (ghost.y < pacman.y) dy = ghostSpeed;
+                else if (ghost.y > pacman.y) dy = -ghostSpeed;
+            }
+            
+            // Om ingen riktning valdes, välj den andra axeln
+            if (dx == 0 && dy == 0) {
+                if (ghost.x < pacman.x) dx = ghostSpeed;
+                else if (ghost.x > pacman.x) dx = -ghostSpeed;
+                else if (ghost.y < pacman.y) dy = ghostSpeed;
+                else if (ghost.y > pacman.y) dy = -ghostSpeed;
+            }
         } else {
             // Slumpmässig rörelse ibland
             moveGhostRandomly(ghost);
@@ -589,7 +725,45 @@ public class PacMan extends JPanel {
             ghost.y = newY;
         } else {
             // Om kollision, prova att röra sig i en annan riktning
-            moveGhostRandomly(ghost);
+            // Prova att röra sig i enbart x eller y riktning
+            if (dx != 0 && dy == 0) {
+                // Prova att röra sig i y-led istället
+                if (pacman.y < ghost.y) {
+                    newY = ghost.y - ghostSpeed;
+                } else {
+                    newY = ghost.y + ghostSpeed;
+                }
+                newX = ghost.x; // Ingen rörelse i x-led
+            } else if (dx == 0 && dy != 0) {
+                // Prova att röra sig i x-led istället
+                if (pacman.x < ghost.x) {
+                    newX = ghost.x - ghostSpeed;
+                } else {
+                    newX = ghost.x + ghostSpeed;
+                }
+                newY = ghost.y; // Ingen rörelse i y-led
+            }
+            
+            // Kontrollera kollision igen
+            collision = false;
+            for (Block wall : walls) {
+                if (newX < wall.x + wall.width && 
+                    newX + ghost.width > wall.x && 
+                    newY < wall.y + wall.height && 
+                    newY + ghost.height > wall.y) {
+                    collision = true;
+                    break;
+                }
+            }
+            
+            // Uppdatera position om ingen kollision
+            if (!collision) {
+                ghost.x = newX;
+                ghost.y = newY;
+            } else {
+                // Om fortfarande kollision, rör dig slumpmässigt
+                moveGhostRandomly(ghost);
+            }
         }
         
         // Hantera tunnlar på sidorna
