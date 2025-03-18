@@ -47,14 +47,14 @@ public class PacMan extends JPanel {
 
     private int pacmanVelocityX = 0;
     private int pacmanVelocityY = 0;
-    private int pacmanSpeed = 3; // Sänkt från 4 till 3 för mer kontroll
+    private int pacmanSpeed = 4; // Ändrat från 3 till 4 för snabbare Pac-Man
     private int pacManDirection = 0; // 0=höger, 1=ner, 2=vänster, 3=upp
     private boolean pacManMouthOpen = true;
     private int animationCounter = 0;
     private int animationSpeed = 5; // Lite långsammare för tydligare animationer
     private Timer gameTimer;
     private Random random = new Random();
-    private int ghostSpeed = 2; // Långsammare spöken för bättre balans
+    private int ghostSpeed = 3; // Ändrat från 2 till 3 för snabbare spöken
     private boolean gameOver = false;
     private boolean gameWon = false;
     private int score = 0;
