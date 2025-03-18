@@ -70,7 +70,7 @@ public class PacMan extends JPanel {
     private Font gameFont = new Font("Arial", Font.BOLD, 30);
     private Font titleFont = new Font("Arial", Font.BOLD, 60);
     
-    // Klassisk Pac-Man-layout med symmetrisk design och tydlig spökgård
+    // Klassisk Pac-Man-layout med symmetrisk design och förbättrad spökgård
     private String[] tileMap = {
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XooooooooooooXXoooooooooooooooX",
@@ -86,7 +86,7 @@ public class PacMan extends JPanel {
         "     XoXX          XXoX       ",
         "     XoXX XXXXXXXX XXoX       ",
         "XXXXXXoXX X      X XXoXXXXXXXX",
-        "      o   X rbpO X   o        ",
+        "      o   XrbpO   X  o        ",
         "XXXXXXoXX X      X XXoXXXXXXXX",
         "     XoXX XXXXXXXX XXoX       ",
         "     XoXX          XXoX       ",
@@ -727,12 +727,12 @@ public class PacMan extends JPanel {
         }
     }
     
-    // Ny hjälpmetod för att avgöra om ett spöke är inne i spökgården
+    // Uppdaterad hjälpmetod för att avgöra om ett spöke är inne i spökgården
     private boolean isGhostInCage(Block ghost) {
-        // Definiera spökgårdens bounding box baserat på nya kartan
+        // Definiera spökgårdens bounding box baserat på den nya layouten
         int cageX1 = 13 * tileSize;
         int cageY1 = 14 * tileSize;
-        int cageX2 = 17 * tileSize;
+        int cageX2 = 18 * tileSize;
         int cageY2 = 16 * tileSize;
         
         // Kontrollera om spöket är inom denna area
@@ -784,30 +784,61 @@ public class PacMan extends JPanel {
         }
     }
     
-    // Ny metod för att släppa ut spöket från buren
+    // Uppdaterad metod för att släppa ut spöket från buren
     private void releaseGhostFromCage(Block ghost) {
         // Konstanter för spökgårdens utgång
-        int exitX = 15 * tileSize;
-        int exitY = 13 * tileSize;
+        int exitX = 15 * tileSize + tileSize/2;
+        int exitY = 12 * tileSize; // Utgången är en rad högre upp
         
         // Centrera spöket i x-led först för att sedan gå uppåt mot utgången
         int ghostCenterX = ghost.x + ghost.width / 2;
         
-        if (Math.abs(ghostCenterX - exitX) > 2) {
-            // Flytta mot mitten av buren först
-            ghost.prevX = ghost.x;
-            ghost.x += (ghostCenterX < exitX) ? 1 : -1;
-        } else {
-            // När spöket är centrerat, flytta det uppåt
+        // Om vi är tillräckligt nära utgången i y-led, fokusera på att centrera i x-led
+        if (ghost.y <= 13 * tileSize) {
+            // Om vi är vid eller över utgången, rör oss uppåt och ignorera x-centrering
             ghost.prevY = ghost.y;
-            ghost.y -= 1;
+            ghost.y -= ghostSpeed;
             
             // Uppdatera spökets riktning till uppåt (3)
             int ghostIndex = 0;
             for (Block g : ghosts) {
                 if (g == ghost) {
                     if (!ghostsScared) {
-                        // Ändra bara bilden om spöket inte är skrämt
+                        ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), 3);
+                    }
+                    break;
+                }
+                ghostIndex++;
+            }
+        } 
+        else if (Math.abs(ghostCenterX - exitX) > ghostSpeed) {
+            // Flytta mot mitten av utgången först
+            ghost.prevX = ghost.x;
+            ghost.x += (ghostCenterX < exitX) ? ghostSpeed : -ghostSpeed;
+            
+            // Uppdatera spökets riktning baserat på dess rörelse
+            int ghostIndex = 0;
+            for (Block g : ghosts) {
+                if (g == ghost) {
+                    if (!ghostsScared) {
+                        int eyeDirection = (ghostCenterX < exitX) ? 0 : 2; // 0=höger, 2=vänster
+                        ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), eyeDirection);
+                    }
+                    break;
+                }
+                ghostIndex++;
+            }
+        } 
+        else {
+            // När spöket är centrerat, flytta det uppåt
+            ghost.prevY = ghost.y;
+            ghost.y -= ghostSpeed;
+            
+            // Uppdatera spökets riktning till uppåt (3)
+            int ghostIndex = 0;
+            for (Block g : ghosts) {
+                if (g == ghost) {
+                    if (!ghostsScared) {
                         ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), 3);
                     }
                     break;
@@ -846,13 +877,13 @@ public class PacMan extends JPanel {
         return false;
     }
     
-    // Hjälpmetod för att identifiera utgångsvägen från buren
+    // Uppdaterad hjälpmetod för att identifiera utgångsvägen från buren
     private boolean isExitPath(int x, int y) {
-        // Området direkt ovanför burens utgång
-        int exitX = 15 * tileSize - tileSize/2;
-        int exitY = 13 * tileSize;
-        int exitWidth = tileSize;
-        int exitHeight = 3 * tileSize;
+        // Definiera den exakta utgången från spökgården - göra den bredare och högre
+        int exitX = 14 * tileSize; // Bredare utgång börjar längre till vänster
+        int exitY = 12 * tileSize; // Börjar högre upp
+        int exitWidth = tileSize * 3;  // Mycket bredare utgång (3 rutor)
+        int exitHeight = 3 * tileSize; // Högre utgång (3 rutor)
         
         return x >= exitX && x < exitX + exitWidth &&
                y >= exitY && y < exitY + exitHeight;
