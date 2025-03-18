@@ -4,10 +4,12 @@ import java.awt.image.BufferedImage;
 
 public class GameImages {
     
-    // Ökad bildstorlek för bättre visuellt uttryck
-    private static final int IMAGE_SIZE = 40; // Större storlek för att matcha den nya banstorleken
+    // Bildstorlek för spelelement
+    private static final int IMAGE_SIZE = 30; // Standard bildstorlek för att passa banan bättre
     
-    // Pacman-bilder i olika riktningar
+    // ======================= PAC-MAN BILDER =======================
+    
+    // Skapa en Pac-Man som tittar åt höger med specifik munöppning
     public static Image createPacmanRightImage(double mouthAngle) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
@@ -15,349 +17,523 @@ public class GameImages {
         // Aktivera anti-aliasing för jämnare kanter
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Rita Pacman med ljusgul färg
-        g2d.setColor(new Color(255, 255, 0)); // Ren gul
+        // Klassisk klar gul färg för Pac-Man
+        Color pacManColor = new Color(255, 255, 0);
         
-        // Räkna ut vinklar för öppning (i grader) - mer vågrät mun
-        double startAngle = 30; // Större värde ger mer vågrät mun
-        double arcAngle = 300; // Mindre värde ger större öppning
+        // Lägg till en ljus gradient för mer djup
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            new Point2D.Float(IMAGE_SIZE/2, IMAGE_SIZE/2),
+            IMAGE_SIZE/2,
+            new float[] {0.0f, 0.8f},
+            new Color[] {new Color(255, 255, 128), pacManColor}
+        );
+        
+        g2d.setPaint(gradient);
+        
+        // Centrera Pac-Man i bilden
+        int centerX = IMAGE_SIZE / 2;
+        int centerY = IMAGE_SIZE / 2;
+        int radius = (IMAGE_SIZE - 4) / 2; // Lite mindre än hela rutan
+        
+        // Beräkna vinklar för mun (i grader)
+        double startAngle = mouthAngle / 2.0;
+        double arcAngle = 360 - mouthAngle;
         
         // Rita en cirkel med en "bit" borttagen
-        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
+        g2d.fill(new Arc2D.Double(centerX - radius, centerY - radius, radius * 2, radius * 2, 
                 startAngle, arcAngle, Arc2D.PIE));
         
-        // Lägg till en subtil gradient för mer visuellt djup
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
-            IMAGE_SIZE/2,
-            new float[] { 0.0f, 0.8f },
-            new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
-        );
-        g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
-                startAngle, arcAngle, Arc2D.PIE));
-                
         g2d.dispose();
         return image;
     }
     
+    // Skapa en Pac-Man som tittar åt vänster med specifik munöppning
     public static Image createPacmanLeftImage(double mouthAngle) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        g2d.setColor(new Color(255, 255, 0)); // Ren gul
+        // Klassisk klar gul färg för Pac-Man
+        Color pacManColor = new Color(255, 255, 0);
         
-        // Mer vågrät mun
-        double startAngle = 150;
-        double arcAngle = 300;
-        
-        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
-                startAngle, arcAngle, Arc2D.PIE));
-        
-        // Lägg till en subtil gradient för mer visuellt djup
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
+        // Lägg till en ljus gradient för mer djup
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            new Point2D.Float(IMAGE_SIZE/2, IMAGE_SIZE/2),
             IMAGE_SIZE/2,
-            new float[] { 0.0f, 0.8f },
-            new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
+            new float[] {0.0f, 0.8f},
+            new Color[] {new Color(255, 255, 128), pacManColor}
         );
-        g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        
+        g2d.setPaint(gradient);
+        
+        // Centrera Pac-Man i bilden
+        int centerX = IMAGE_SIZE / 2;
+        int centerY = IMAGE_SIZE / 2;
+        int radius = (IMAGE_SIZE - 4) / 2;
+        
+        // För vänster riktning börjar munnen från motsatt håll (180 grader)
+        double startAngle = 180 - mouthAngle / 2.0;
+        double arcAngle = 360 - mouthAngle;
+        
+        g2d.fill(new Arc2D.Double(centerX - radius, centerY - radius, radius * 2, radius * 2, 
                 startAngle, arcAngle, Arc2D.PIE));
-                
+        
         g2d.dispose();
         return image;
     }
     
+    // Skapa en Pac-Man som tittar uppåt med specifik munöppning
     public static Image createPacmanUpImage(double mouthAngle) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        g2d.setColor(new Color(255, 255, 0)); // Ren gul
+        // Klassisk klar gul färg för Pac-Man
+        Color pacManColor = new Color(255, 255, 0);
         
-        // Mer vågrät mun
-        double startAngle = 240;
-        double arcAngle = 300;
-        
-        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
-                startAngle, arcAngle, Arc2D.PIE));
-        
-        // Lägg till en subtil gradient för mer visuellt djup
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
+        // Lägg till en ljus gradient för mer djup
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            new Point2D.Float(IMAGE_SIZE/2, IMAGE_SIZE/2),
             IMAGE_SIZE/2,
-            new float[] { 0.0f, 0.8f },
-            new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
+            new float[] {0.0f, 0.8f},
+            new Color[] {new Color(255, 255, 128), pacManColor}
         );
-        g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        
+        g2d.setPaint(gradient);
+        
+        // Centrera Pac-Man i bilden
+        int centerX = IMAGE_SIZE / 2;
+        int centerY = IMAGE_SIZE / 2;
+        int radius = (IMAGE_SIZE - 4) / 2;
+        
+        // För uppåtriktad, vinkeln börjar från 270 grader
+        double startAngle = 270 - mouthAngle / 2.0;
+        double arcAngle = 360 - mouthAngle;
+        
+        g2d.fill(new Arc2D.Double(centerX - radius, centerY - radius, radius * 2, radius * 2, 
                 startAngle, arcAngle, Arc2D.PIE));
-                
+        
         g2d.dispose();
         return image;
     }
     
+    // Skapa en Pac-Man som tittar nedåt med specifik munöppning
     public static Image createPacmanDownImage(double mouthAngle) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        g2d.setColor(new Color(255, 255, 0)); // Ren gul
+        // Klassisk klar gul färg för Pac-Man
+        Color pacManColor = new Color(255, 255, 0);
         
-        // Mer vågrät mun
-        double startAngle = 300;
-        double arcAngle = 300;
-        
-        g2d.fill(new Arc2D.Double(2.0, 2.0, IMAGE_SIZE-4, IMAGE_SIZE-4, 
-                startAngle, arcAngle, Arc2D.PIE));
-        
-        // Lägg till en subtil gradient för mer visuellt djup
-        RadialGradientPaint paint = new RadialGradientPaint(
-            new Point2D.Double(IMAGE_SIZE/2, IMAGE_SIZE/2),
+        // Lägg till en ljus gradient för mer djup
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            new Point2D.Float(IMAGE_SIZE/2, IMAGE_SIZE/2),
             IMAGE_SIZE/2,
-            new float[] { 0.0f, 0.8f },
-            new Color[] { new Color(255, 255, 100), new Color(255, 220, 0) }
+            new float[] {0.0f, 0.8f},
+            new Color[] {new Color(255, 255, 128), pacManColor}
         );
-        g2d.setPaint(paint);
-        g2d.fill(new Arc2D.Double(4.0, 4.0, IMAGE_SIZE-8, IMAGE_SIZE-8, 
+        
+        g2d.setPaint(gradient);
+        
+        // Centrera Pac-Man i bilden
+        int centerX = IMAGE_SIZE / 2;
+        int centerY = IMAGE_SIZE / 2;
+        int radius = (IMAGE_SIZE - 4) / 2;
+        
+        // För nedåtriktad, vinkeln börjar från 90 grader
+        double startAngle = 90 - mouthAngle / 2.0;
+        double arcAngle = 360 - mouthAngle;
+        
+        g2d.fill(new Arc2D.Double(centerX - radius, centerY - radius, radius * 2, radius * 2, 
                 startAngle, arcAngle, Arc2D.PIE));
-                
+        
         g2d.dispose();
         return image;
     }
     
-    // Generisk spökbild med anpassad färg
-    public static Image createGhostImage(Color mainColor) {
+    // ======================= SPÖKBILDER =======================
+    
+    /**
+     * Skapar ett spöke med den klassiska designen
+     * @param mainColor Huvudfärgen på spöket
+     * @param eyeDirection Ögonriktning: 0=höger, 1=ner, 2=vänster, 3=upp
+     * @return Bilden av spöket
+     */
+    public static Image createGhostImage(Color mainColor, int eyeDirection) {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Kropp (övre halvan är en oval, nedre halvan är en rektangel med vågig botten)
+        int padding = 2;
+        
+        // Spökens kropp
+        int ghostWidth = IMAGE_SIZE - 2*padding;
+        int ghostHeight = (int)(ghostWidth * 0.9); // Lite lägre höjd
+        
+        // Övre delen är en halvcirkel
+        int topDiameter = ghostWidth;
+        int topRadius = topDiameter / 2;
+        int topX = padding;
+        int topY = padding;
+        
+        // Rita övre halvcirkel
         g2d.setColor(mainColor);
+        g2d.fillArc(topX, topY, topDiameter, topDiameter, 0, 180);
         
-        // Rita huvuddelen av spöket (rektangel med rundade hörn)
-        g2d.fillRoundRect(4, IMAGE_SIZE/2, IMAGE_SIZE-8, IMAGE_SIZE/2-4, 8, 8);
+        // Rita rektangulär del av kroppen
+        int rectHeight = ghostHeight / 2;
+        int rectX = padding;
+        int rectY = padding + topRadius;
+        g2d.fillRect(rectX, rectY, ghostWidth, rectHeight);
         
-        // Rita den övre delen (oval)
-        g2d.fillOval(4, 4, IMAGE_SIZE-8, IMAGE_SIZE/2+4);
+        // Rita den "vågiga" bottenkanten (klassisk design med 3 vågor)
+        int waveCount = 3;
+        int waveWidth = ghostWidth / waveCount;
+        int waveHeight = ghostHeight / 6;
         
-        // Rita den vågiga botten
-        int waveHeight = 4;
-        int segments = 3;
-        int segmentWidth = (IMAGE_SIZE-8) / segments;
-        
-        for (int i = 0; i < segments; i++) {
-            int x = 4 + i * segmentWidth;
-            g2d.fillArc(x, IMAGE_SIZE-waveHeight*2, segmentWidth, waveHeight*2, 0, 180);
+        for (int i = 0; i < waveCount; i++) {
+            int[] xPoints = {
+                rectX + i*waveWidth,
+                rectX + i*waveWidth + waveWidth/2,
+                rectX + (i+1)*waveWidth
+            };
+            
+            int[] yPoints = {
+                rectY + rectHeight,
+                rectY + rectHeight + waveHeight,
+                rectY + rectHeight
+            };
+            
+            g2d.fillPolygon(xPoints, yPoints, 3);
         }
         
-        // Ögon (vita)
+        // Rita ögonen (vita oval)
         g2d.setColor(Color.WHITE);
-        g2d.fillOval(IMAGE_SIZE/4-2, IMAGE_SIZE/3-2, 10, 10);
-        g2d.fillOval(3*IMAGE_SIZE/4-8, IMAGE_SIZE/3-2, 10, 10);
+        int eyeWidth = ghostWidth / 4;
+        int eyeHeight = (int)(eyeWidth * 1.2);
+        int eyeSpacing = ghostWidth / 5;
+        int eyeY = topY + topRadius - eyeHeight/4;
+        int leftEyeX = padding + ghostWidth/2 - eyeSpacing - eyeWidth/2;
+        int rightEyeX = padding + ghostWidth/2 + eyeSpacing - eyeWidth/2;
         
-        // Pupiller (blå)
+        g2d.fillOval(leftEyeX, eyeY, eyeWidth, eyeHeight);
+        g2d.fillOval(rightEyeX, eyeY, eyeWidth, eyeHeight);
+        
+        // Rita pupillerna (blå)
         g2d.setColor(Color.BLUE);
-        g2d.fillOval(IMAGE_SIZE/4, IMAGE_SIZE/3, 6, 6);
-        g2d.fillOval(3*IMAGE_SIZE/4-6, IMAGE_SIZE/3, 6, 6);
+        int pupilSize = eyeWidth / 2;
+        
+        // Olika ögonriktningar baserat på parameter
+        int leftPupilX = leftEyeX + eyeWidth/2 - pupilSize/2;
+        int rightPupilX = rightEyeX + eyeWidth/2 - pupilSize/2;
+        int pupilY = eyeY + eyeHeight/2 - pupilSize/2;
+        
+        // Justera pupillernas position baserat på riktning
+        if (eyeDirection == 0) { // Höger
+            leftPupilX += pupilSize/2;
+            rightPupilX += pupilSize/2;
+        } else if (eyeDirection == 1) { // Ner
+            pupilY += pupilSize/2;
+        } else if (eyeDirection == 2) { // Vänster
+            leftPupilX -= pupilSize/2;
+            rightPupilX -= pupilSize/2;
+        } else if (eyeDirection == 3) { // Upp
+            pupilY -= pupilSize/2;
+        }
+        
+        g2d.fillOval(leftPupilX, pupilY, pupilSize, pupilSize);
+        g2d.fillOval(rightPupilX, pupilY, pupilSize, pupilSize);
         
         g2d.dispose();
         return image;
     }
     
-    // Rött spöke (Blinky)
-    public static Image createRedGhostImage() {
-        return createGhostImage(new Color(255, 0, 0)); // Blinky - röd
+    // Rött spöke (Blinky) - jagar Pac-Man direkt
+    public static Image createRedGhostImage(int eyeDirection) {
+        return createGhostImage(new Color(255, 0, 0), eyeDirection); // Klassisk röd
     }
     
-    // Rosa spöke (Pinky)
-    public static Image createPinkGhostImage() {
-        return createGhostImage(new Color(255, 182, 255)); // Pinky - rosa
+    // Rosa spöke (Pinky) - försöker hamna framför Pac-Man
+    public static Image createPinkGhostImage(int eyeDirection) {
+        return createGhostImage(new Color(255, 192, 203), eyeDirection); // Ljusrosa
     }
     
-    // Blått spöke (Inky)
-    public static Image createBlueGhostImage() {
-        return createGhostImage(new Color(0, 255, 255)); // Inky - cyan
+    // Cyan spöke (Inky) - komplext rörelsemönster
+    public static Image createCyanGhostImage(int eyeDirection) {
+        return createGhostImage(new Color(0, 255, 255), eyeDirection); // Klassisk cyan
     }
     
-    // Orange spöke (Clyde)
-    public static Image createOrangeGhostImage() {
-        return createGhostImage(new Color(255, 165, 0)); // Clyde - orange
+    // Orange spöke (Clyde) - slumpmässigt beteende
+    public static Image createOrangeGhostImage(int eyeDirection) {
+        return createGhostImage(new Color(255, 165, 0), eyeDirection); // Klassisk orange
     }
     
-    // Cyan spöke (Inky)
-    public static Image createCyanGhostImage() {
-        return createGhostImage(new Color(0, 255, 255)); // Cyan färg
-    }
-    
-    // Skrämt spöke
-    public static Image createScaredGhostImage() {
+    // Skrämt spöke (blått)
+    public static Image createScaredGhostImage(boolean flashing) {
+        Color ghostColor;
+        if (flashing) {
+            // Blinkar vitt/blått när powerup håller på att ta slut
+            ghostColor = new Color(255, 255, 255);
+        } else {
+            // Normalt skrämt spöke - mörkblått
+            ghostColor = new Color(0, 0, 196);
+        }
+        
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Kropp (mörkblå)
-        g2d.setColor(new Color(0, 0, 150));
+        int padding = 2;
         
-        // Rita huvuddelen av spöket (rektangel med rundade hörn)
-        g2d.fillRoundRect(4, IMAGE_SIZE/2, IMAGE_SIZE-8, IMAGE_SIZE/2-4, 8, 8);
+        // Spökens kropp
+        int ghostWidth = IMAGE_SIZE - 2*padding;
+        int ghostHeight = (int)(ghostWidth * 0.9);
         
-        // Rita den övre delen (oval)
-        g2d.fillOval(4, 4, IMAGE_SIZE-8, IMAGE_SIZE/2+4);
+        // Övre delen är en halvcirkel
+        int topDiameter = ghostWidth;
+        int topRadius = topDiameter / 2;
+        int topX = padding;
+        int topY = padding;
         
-        // Rita den vågiga botten
-        int waveHeight = 4;
-        int segments = 3;
-        int segmentWidth = (IMAGE_SIZE-8) / segments;
+        // Rita övre halvcirkel
+        g2d.setColor(ghostColor);
+        g2d.fillArc(topX, topY, topDiameter, topDiameter, 0, 180);
         
-        for (int i = 0; i < segments; i++) {
-            int x = 4 + i * segmentWidth;
-            g2d.fillArc(x, IMAGE_SIZE-waveHeight*2, segmentWidth, waveHeight*2, 0, 180);
+        // Rita rektangulär del av kroppen
+        int rectHeight = ghostHeight / 2;
+        int rectX = padding;
+        int rectY = padding + topRadius;
+        g2d.fillRect(rectX, rectY, ghostWidth, rectHeight);
+        
+        // Rita den "vågiga" bottenkanten
+        int waveCount = 3;
+        int waveWidth = ghostWidth / waveCount;
+        int waveHeight = ghostHeight / 6;
+        
+        for (int i = 0; i < waveCount; i++) {
+            int[] xPoints = {
+                rectX + i*waveWidth,
+                rectX + i*waveWidth + waveWidth/2,
+                rectX + (i+1)*waveWidth
+            };
+            
+            int[] yPoints = {
+                rectY + rectHeight,
+                rectY + rectHeight + waveHeight,
+                rectY + rectHeight
+            };
+            
+            g2d.fillPolygon(xPoints, yPoints, 3);
         }
         
-        // Ögon (vita)
+        // Rita ögonen (vita)
         g2d.setColor(Color.WHITE);
-        g2d.fillOval(IMAGE_SIZE/4-2, IMAGE_SIZE/3-2, 10, 10);
-        g2d.fillOval(3*IMAGE_SIZE/4-8, IMAGE_SIZE/3-2, 10, 10);
+        int eyeSize = ghostWidth / 5;
+        int eyeSpacing = ghostWidth / 3;
+        int eyeY = topY + topRadius;
         
-        // Mun (vit)
+        g2d.fillOval(padding + ghostWidth/2 - eyeSpacing - eyeSize/2, 
+                     eyeY, eyeSize, eyeSize);
+        g2d.fillOval(padding + ghostWidth/2 + eyeSpacing - eyeSize/2, 
+                     eyeY, eyeSize, eyeSize);
+        
+        // Rita munnen (blå)
         g2d.setColor(Color.WHITE);
-        int mouthY = IMAGE_SIZE/2 + 4;
-        g2d.drawLine(IMAGE_SIZE/3, mouthY, IMAGE_SIZE/3+2, mouthY+2);
-        g2d.drawLine(IMAGE_SIZE/3+2, mouthY+2, IMAGE_SIZE/3+4, mouthY);
-        g2d.drawLine(IMAGE_SIZE/3+4, mouthY, IMAGE_SIZE/3+6, mouthY+2);
-        g2d.drawLine(IMAGE_SIZE/3+6, mouthY+2, IMAGE_SIZE/3+8, mouthY);
-        g2d.drawLine(IMAGE_SIZE/3+8, mouthY, IMAGE_SIZE/3+10, mouthY+2);
+        g2d.setStroke(new BasicStroke(2.0f));
+        
+        // Skapa en böjd mun (vagga)
+        int mouthWidth = ghostWidth / 2;
+        int mouthHeight = ghostHeight / 6;
+        int mouthX = rectX + ghostWidth/2 - mouthWidth/2;
+        int mouthY = rectY + 2;
+        
+        g2d.drawArc(mouthX, mouthY, mouthWidth, mouthHeight * 2, 0, -180);
         
         g2d.dispose();
         return image;
     }
     
-    // Vägg-bild
+    // Ätna spöken (ögon som återgår till spökgården)
+    public static Image createEatenGhostImage(int eyeDirection) {
+        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Rita bara ögonen
+        g2d.setColor(Color.WHITE);
+        int eyeWidth = IMAGE_SIZE / 6;
+        int eyeHeight = (int)(eyeWidth * 1.2);
+        int eyeSpacing = IMAGE_SIZE / 4;
+        int eyeY = IMAGE_SIZE / 2 - eyeHeight / 2;
+        int leftEyeX = IMAGE_SIZE/2 - eyeSpacing - eyeWidth/2;
+        int rightEyeX = IMAGE_SIZE/2 + eyeSpacing - eyeWidth/2;
+        
+        g2d.fillOval(leftEyeX, eyeY, eyeWidth, eyeHeight);
+        g2d.fillOval(rightEyeX, eyeY, eyeWidth, eyeHeight);
+        
+        // Rita pupillerna (blå)
+        g2d.setColor(Color.BLUE);
+        int pupilSize = eyeWidth / 2;
+        
+        // Olika ögonriktningar baserat på parameter
+        int leftPupilX = leftEyeX + eyeWidth/2 - pupilSize/2;
+        int rightPupilX = rightEyeX + eyeWidth/2 - pupilSize/2;
+        int pupilY = eyeY + eyeHeight/2 - pupilSize/2;
+        
+        // Justera pupillernas position baserat på riktning
+        if (eyeDirection == 0) { // Höger
+            leftPupilX += pupilSize/2;
+            rightPupilX += pupilSize/2;
+        } else if (eyeDirection == 1) { // Ner
+            pupilY += pupilSize/2;
+        } else if (eyeDirection == 2) { // Vänster
+            leftPupilX -= pupilSize/2;
+            rightPupilX -= pupilSize/2;
+        } else if (eyeDirection == 3) { // Upp
+            pupilY -= pupilSize/2;
+        }
+        
+        g2d.fillOval(leftPupilX, pupilY, pupilSize, pupilSize);
+        g2d.fillOval(rightPupilX, pupilY, pupilSize, pupilSize);
+        
+        g2d.dispose();
+        return image;
+    }
+    
+    // ======================= SPELPLAN OCH ANDRA OBJEKT =======================
+    
+    // Vägg-bild (klassiskt blå)
     public static Image createWallImage() {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Skapa en mörkblå färg för väggarna (mer lik originalspelet)
-        Color darkBlue = new Color(0, 0, 128);
-        Color lightBlue = new Color(0, 0, 255);
+        // Klassisk mörk marinblå från originalspelet
+        Color wallColor = new Color(33, 33, 255);
         
-        // Fyll hela rutan med mörkblå
-        g2d.setColor(darkBlue);
+        // Rita en fylld rektangel med rundade hörn
+        g2d.setColor(wallColor);
         g2d.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
         
-        // Lägg till en ljusblå kant för att ge väggarna ett glödande utseende
-        g2d.setColor(lightBlue);
-        g2d.setStroke(new BasicStroke(2.0f));
-        g2d.drawRect(1, 1, IMAGE_SIZE-2, IMAGE_SIZE-2);
-        
-        // Lägg till en subtil gradient för mer djup
-        GradientPaint gradient = new GradientPaint(
-            0, 0, new Color(0, 0, 180, 150),
-            IMAGE_SIZE, IMAGE_SIZE, new Color(0, 0, 100, 150)
-        );
-        g2d.setPaint(gradient);
-        g2d.fillRect(3, 3, IMAGE_SIZE-6, IMAGE_SIZE-6);
+        // Lägg till en ljusare ytterlinje för 3D-effekt
+        g2d.setColor(new Color(144, 144, 255));
+        g2d.drawRect(0, 0, IMAGE_SIZE-1, IMAGE_SIZE-1);
         
         g2d.dispose();
         return image;
     }
     
-    // Mat-bild (pellet)
+    // Mat (små prickar)
     public static Image createFoodImage() {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Skapa en liten vit prick i mitten (som i originalspelet)
-        int dotSize = IMAGE_SIZE / 8; // Mindre prick
-        int dotX = (IMAGE_SIZE - dotSize) / 2;
-        int dotY = (IMAGE_SIZE - dotSize) / 2;
+        // Ljusrosa mat-prickar
+        g2d.setColor(new Color(255, 255, 180));
         
-        // Rita en vit cirkel
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(dotX, dotY, dotSize, dotSize);
-        
-        // Lägg till en subtil glöd
-        g2d.setColor(new Color(255, 255, 255, 100));
-        g2d.fillOval(dotX - 1, dotY - 1, dotSize + 2, dotSize + 2);
+        // Liten prick i mitten av rutan
+        int dotSize = IMAGE_SIZE / 6;
+        g2d.fillOval(IMAGE_SIZE/2 - dotSize/2, IMAGE_SIZE/2 - dotSize/2, dotSize, dotSize);
         
         g2d.dispose();
         return image;
     }
     
-    // Power Pellet-bild
+    // Power pellet (större prickar)
     public static Image createPowerPelletImage() {
         BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
+        
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Skapa en större vit prick i mitten (som i originalspelet)
-        int dotSize = IMAGE_SIZE / 3; // Större prick för power pellet
-        int dotX = (IMAGE_SIZE - dotSize) / 2;
-        int dotY = (IMAGE_SIZE - dotSize) / 2;
+        // Ljusrosa färg för power pellet
+        g2d.setColor(new Color(255, 255, 180));
         
-        // Rita en vit cirkel
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(dotX, dotY, dotSize, dotSize);
-        
-        // Lägg till en subtil glöd
-        g2d.setColor(new Color(255, 255, 255, 100));
-        g2d.fillOval(dotX - 2, dotY - 2, dotSize + 4, dotSize + 4);
+        // Större prick i mitten av rutan
+        int dotSize = IMAGE_SIZE / 2;
+        g2d.fillOval(IMAGE_SIZE/2 - dotSize/2, IMAGE_SIZE/2 - dotSize/2, dotSize, dotSize);
         
         g2d.dispose();
         return image;
     }
     
-    // Pac-Man-bild med olika munöppningar
+    // ======================= HJÄLPMETODER FÖR PACMAN =======================
+    
+    // Skapa alla Pac-Man-bilder i olika riktningar och munöppningar
     public static Image createPacManImage(int direction, boolean mouthOpen) {
-        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Munöppningsvinkel är bredare när den är öppen, nästan helt stängd annars
+        double openAngle = 60.0; // Klassisk munöppningsvinkel
+        double closedAngle = 5.0; // Nästan stängd mun
         
-        // Skapa en gul cirkel för Pac-Man
-        int pacManSize = (int)(IMAGE_SIZE * 0.8);
-        int x = (IMAGE_SIZE - pacManSize) / 2;
-        int y = (IMAGE_SIZE - pacManSize) / 2;
+        double angle = mouthOpen ? openAngle : closedAngle;
         
-        // Gul färg för Pac-Man
-        Color pacManColor = new Color(255, 255, 0);
-        g2d.setColor(pacManColor);
-        
-        // Startvinkel och vinkelomfång för munnen
-        int startAngle = 0;
-        int arcAngle = mouthOpen ? 300 : 360; // Om munnen är öppen: 300 grader, annars hel cirkel
-        
-        // Justera startvinkel baserat på riktning
-        if (mouthOpen) {
-            switch (direction) {
-                case 0: // Höger
-                    startAngle = 330;
-                    break;
-                case 1: // Ner
-                    startAngle = 60;
-                    break;
-                case 2: // Vänster
-                    startAngle = 150;
-                    break;
-                case 3: // Upp
-                    startAngle = 240;
-                    break;
-            }
+        switch (direction) {
+            case 0: // Höger
+                return createPacmanRightImage(angle);
+            case 1: // Ner
+                return createPacmanDownImage(angle);
+            case 2: // Vänster
+                return createPacmanLeftImage(angle);
+            case 3: // Upp
+                return createPacmanUpImage(angle);
+            default:
+                return createPacmanRightImage(angle);
         }
+    }
+    
+    // Överlagrad metod som tar emot en animationsfas för mer detaljerad animation
+    public static Image createPacManImage(int direction, int animationPhase) {
+        // Animationsfas: 0 = helt öppen, 1 = halvöppen, 2 = nästan stängd, 3 = stängd
+        double[] mouthAngles = {60.0, 40.0, 20.0, 5.0};
+        double angle = mouthAngles[animationPhase % mouthAngles.length];
         
-        // Rita Pac-Man-kroppen
-        g2d.fillArc(x, y, pacManSize, pacManSize, startAngle, arcAngle);
-        
-        g2d.dispose();
-        return image;
+        switch (direction) {
+            case 0: // Höger
+                return createPacmanRightImage(angle);
+            case 1: // Ner
+                return createPacmanDownImage(angle);
+            case 2: // Vänster
+                return createPacmanLeftImage(angle);
+            case 3: // Upp
+                return createPacmanUpImage(angle);
+            default:
+                return createPacmanRightImage(angle);
+        }
     }
     
     // Överlagrad metod för bakåtkompatibilitet
     public static Image createPacManImage(int direction) {
         return createPacManImage(direction, true); // Standard är öppen mun
+    }
+    
+    // ======================= ÖVERLAGRADE METODER FÖR STANDARDRIKTNING =======================
+    
+    // Standardriktning för spökbilder är höger (eyeDirection = 0)
+    public static Image createRedGhostImage() {
+        return createRedGhostImage(0);
+    }
+    
+    public static Image createPinkGhostImage() {
+        return createPinkGhostImage(0);
+    }
+    
+    public static Image createCyanGhostImage() {
+        return createCyanGhostImage(0);
+    }
+    
+    public static Image createOrangeGhostImage() {
+        return createOrangeGhostImage(0);
+    }
+    
+    public static Image createScaredGhostImage() {
+        return createScaredGhostImage(false);
     }
 }
