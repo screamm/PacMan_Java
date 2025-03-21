@@ -411,57 +411,50 @@ public class GameImages {
     
     // Vägg-bild (klassiskt blå)
     public static Image createWallImage() {
-        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
+        BufferedImage image = new BufferedImage(30, 30, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) image.getGraphics();
         
-        // Klassisk mörk marinblå från originalspelet
-        Color wallColor = new Color(33, 33, 255);
+        // Ställ in antialiasing för jämnare kanter
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Rita en fylld rektangel med rundade hörn
-        g2d.setColor(wallColor);
-        g2d.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
+        // Retro-blå färg för labyrinten - mer lik originalspelet
+        Color retroBlue = new Color(33, 33, 255);
+        g.setColor(retroBlue);
+        g.fillRect(0, 0, 30, 30);
         
-        // Lägg till en ljusare ytterlinje för 3D-effekt
-        g2d.setColor(new Color(144, 144, 255));
-        g2d.drawRect(0, 0, IMAGE_SIZE-1, IMAGE_SIZE-1);
-        
-        g2d.dispose();
+        g.dispose();
         return image;
     }
     
     // Mat (små prickar)
     public static Image createFoodImage() {
-        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) image.getGraphics();
         
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Ställ in antialiasing för jämnare kanter
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Ljusrosa mat-prickar
-        g2d.setColor(new Color(255, 255, 180));
+        // Klassisk vit-gul prick
+        g.setColor(new Color(255, 255, 224));
+        g.fillOval(2, 2, 6, 6);
         
-        // Liten prick i mitten av rutan
-        int dotSize = IMAGE_SIZE / 6;
-        g2d.fillOval(IMAGE_SIZE/2 - dotSize/2, IMAGE_SIZE/2 - dotSize/2, dotSize, dotSize);
-        
-        g2d.dispose();
+        g.dispose();
         return image;
     }
     
     // Power pellet (större prickar)
     public static Image createPowerPelletImage() {
-        BufferedImage image = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
+        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) image.getGraphics();
         
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Ställ in antialiasing för jämnare kanter
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Ljusrosa färg för power pellet
-        g2d.setColor(new Color(255, 255, 180));
+        // Klassisk vit-gul större prick
+        g.setColor(new Color(255, 255, 224));
+        g.fillOval(2, 2, 16, 16);
         
-        // Större prick i mitten av rutan
-        int dotSize = IMAGE_SIZE / 2;
-        g2d.fillOval(IMAGE_SIZE/2 - dotSize/2, IMAGE_SIZE/2 - dotSize/2, dotSize, dotSize);
-        
-        g2d.dispose();
+        g.dispose();
         return image;
     }
     
@@ -469,24 +462,32 @@ public class GameImages {
     
     // Skapa alla Pac-Man-bilder i olika riktningar och munöppningar
     public static Image createPacManImage(int direction, boolean mouthOpen) {
-        // Munöppningsvinkel är bredare när den är öppen, nästan helt stängd annars
-        double openAngle = 60.0; // Klassisk munöppningsvinkel
-        double closedAngle = 5.0; // Nästan stängd mun
+        BufferedImage image = new BufferedImage(30, 30, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) image.getGraphics();
         
-        double angle = mouthOpen ? openAngle : closedAngle;
+        // Ställ in antialiasing för jämnare kanter
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        switch (direction) {
-            case 0: // Höger
-                return createPacmanRightImage(angle);
-            case 1: // Ner
-                return createPacmanDownImage(angle);
-            case 2: // Vänster
-                return createPacmanLeftImage(angle);
-            case 3: // Upp
-                return createPacmanUpImage(angle);
-            default:
-                return createPacmanRightImage(angle);
+        // Klassisk Pac-Man gul
+        Color retroYellow = new Color(255, 255, 0);
+        g.setColor(retroYellow);
+        
+        if (mouthOpen) {
+            // Öppen mun
+            int startAngle = 0;
+            if (direction == 0) startAngle = 45; // höger
+            else if (direction == 1) startAngle = 315; // ner
+            else if (direction == 2) startAngle = 135; // vänster
+            else startAngle = 225; // upp
+            
+            g.fillArc(0, 0, 30, 30, startAngle, 270);
+        } else {
+            // Stängd mun (full cirkel)
+            g.fillOval(0, 0, 30, 30);
         }
+        
+        g.dispose();
+        return image;
     }
     
     // Överlagrad metod som tar emot en animationsfas för mer detaljerad animation

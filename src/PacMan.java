@@ -6,6 +6,8 @@ import javax.swing.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.awt.image.BufferedImage;
+import java.awt.BasicStroke;
 
 public class PacMan extends JPanel {
 
@@ -22,6 +24,10 @@ public class PacMan extends JPanel {
         int prevX;
         int prevY;
 
+        boolean inCage;
+        int cageTimer;
+        int ghostIndex;
+
         Block(Image image, int x, int y, int width, int height) {
             this.image = image;
             this.x = x;
@@ -32,6 +38,9 @@ public class PacMan extends JPanel {
             this.startY = y;
             this.prevX = x;
             this.prevY = y;
+            this.inCage = false;
+            this.cageTimer = 0;
+            this.ghostIndex = 0;
         }
     }
 
@@ -66,10 +75,25 @@ public class PacMan extends JPanel {
     private boolean gamePaused = false;
     
     // Visuella förbättringar
-    private Color backgroundColor = new Color(0, 0, 20); // Mycket mörk blå, nästan svart
+    private Color backgroundColor = new Color(0, 0, 0); // Helt svart bakgrund för mer retrokänsla
     private Font gameFont = new Font("Arial", Font.BOLD, 30);
+    private Font scoreFont = new Font("Arial", Font.BOLD, 20); // Font för poängräkning
     private Font titleFont = new Font("Arial", Font.BOLD, 60);
-    
+
+    // Retro-funktioner
+    private int highScore = 10000; // Standardvärde för high score
+    private int level = 1;
+    private int fruitBonus = 100; // Bonuspoäng för frukter
+    private boolean showReady = true; // Om "READY!" ska visas vid start
+    private int readyTimer = 120; // Timer för "READY!" text (i frames)
+    private boolean showFruit = false; // Om frukt ska visas
+    private int fruitTimer = 0; // Timer för hur länge frukten visas
+    private int fruitX, fruitY; // Position för frukt
+    private Image fruitImage; // Bild för aktuell frukt
+    private int pointsDisplayTimer = 0; // Timer för visning av poäng när spöke äts
+    private int pointsDisplayX = 0, pointsDisplayY = 0; // Position för poängvisning
+    private int pointsDisplayValue = 0; // Poängvärde att visa
+
     // Klassisk Pac-Man-layout med symmetrisk design och förbättrad spökgård
     private String[] tileMap = {
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -80,13 +104,13 @@ public class PacMan extends JPanel {
         "XoooooooooooooooooooooooooooooX",
         "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
         "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
-        "XoooooooXooooXXooooXoooooooooX",
+        "XooooooooooooXXooooooooooooooX",
         "XXXXXXoXXXXXoXXoXXXXXoXXXXXXXX",
         "     XoXXXXXoXXoXXXXXoX       ",
         "     XoXX          XXoX       ",
-        "     XoXX XXXXXXXX XXoX       ",
+        "     XoXX XX    XX XXoX       ",
         "XXXXXXoXX X      X XXoXXXXXXXX",
-        "      o   XrbpO   X  o        ",
+        "      o   XrbpO  X   o        ",
         "XXXXXXoXX X      X XXoXXXXXXXX",
         "     XoXX XXXXXXXX XXoX       ",
         "     XoXX          XXoX       ",
@@ -95,10 +119,10 @@ public class PacMan extends JPanel {
         "XooooooooooooXXoooooooooooooooX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
         "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
-        "XEoXXoooooooPooooooooXXoXXoEoX",
-        "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXX",
-        "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXX",
-        "XoooooooXooooXXooooXoooooooooX",
+        "XEoXXoooooooPooooooooXXoXXoEooX",
+        "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXoX",
+        "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXoX",
+        "XooooooooooooXXoooooooooooooooX",
         "XoXXXXXXXXXXoXXoXXXXXXXXXXXoXoX",
         "XoXXXXXXXXXXoXXoXXXXXXXXXXXoXoX",
         "XoooooooooooooooooooooooooooooX",
@@ -909,55 +933,44 @@ public class PacMan extends JPanel {
     }
     
     private void checkGhostCollision() {
-        // Ingen kollision om Pac-Man är död eller om spelet är vunnet
-        if (gameOver || gameWon) return;
+        if (pacman == null) return;
         
-        Iterator<Block> ghostIterator = ghosts.iterator();
-        while (ghostIterator.hasNext()) {
-            Block ghost = ghostIterator.next();
+        Rectangle pacmanRect = new Rectangle(pacman.x, pacman.y, pacman.width, pacman.height);
+        
+        for (Iterator<Block> it = ghosts.iterator(); it.hasNext();) {
+            Block ghost = it.next();
             
-            // Kolla om Pac-Man kolliderar med spöke
-            if (pacman.x < ghost.x + ghost.width - 4 && 
-                pacman.x + pacman.width - 4 > ghost.x && 
-                pacman.y < ghost.y + ghost.height - 4 && 
-                pacman.y + pacman.height - 4 > ghost.y) {
-                
+            Rectangle ghostRect = new Rectangle(ghost.x, ghost.y, ghost.width, ghost.height);
+            
+            if (pacmanRect.intersects(ghostRect)) {
                 if (ghostsScared) {
-                    // Pac-Man äter spöke
-                    // Ökande poäng för varje spöke som äts under samma powerup
-                    int points = ghostPoints * ghostCombo;
-                    score += points;
-                    ghostCombo *= 2; // Dubbla poängen för nästa spöke
+                    // Beräkna poäng baserat på hur många spöken som ätits under samma power pellet
+                    int ghostValue = 200 * (int)Math.pow(2, ghostCombo - 1);
+                    ghostValue = Math.min(ghostValue, 1600); // Max 1600 poäng
+                    addScore(ghostValue, ghost.x, ghost.y);
                     
-                    // Visuell feedback när spöke äts upp
-                    scoreDisplayText = "+" + points;
-                    scoreDisplayPosition.x = ghost.x;
-                    scoreDisplayPosition.y = ghost.y;
-                    scoreDisplayTimer = 40; // Visa längre för högre poäng
-                    
-                    soundManager.play("ghost");
-                    
-                    // Flytta spöket tillbaka till startpositionen
+                    // Återställ spöket till startposition
                     ghost.x = ghost.startX;
                     ghost.y = ghost.startY;
+                    ghost.inCage = true;
+                    ghost.cageTimer = random.nextInt(60) + 60; // 1-2 sekunder i buren
                     
-                    // Spöket är inte längre skrämt
-                    ghost.image = ghostImages[0]; // Återställer bilden (temporärt)
+                    soundManager.play("ghost"); // Spela ljudeffekt för att äta spöke
                 } else {
-                    // Pac-Man förlorar ett liv
-                    lives--;
-                    soundManager.play("death");
-                    
-                    // Återställ positioner för Pac-Man och spöken
-                    resetPositions();
-                    
-                    if (lives <= 0) {
-                        // Game over
-                        gameOver = true;
-                        soundManager.play("gameover");
+                    if (!gameOver) {
+                        lives--;
+                        
+                        if (lives <= 0) {
+                            gameOver = true;
+                            soundManager.play("gameover");
+                        } else {
+                            // Återställ Pac-Man och spöken till startposition
+                            restartLevel();
+                            soundManager.play("death");
+                        }
                     }
-                    return; // Avbryt loopen efter kollision
                 }
+                break;
             }
         }
     }
@@ -1264,6 +1277,11 @@ public class PacMan extends JPanel {
             g2d.drawImage(powerPellet.image, adjustedX, adjustedY, adjustedSize, adjustedSize, null);
         }
         
+        // Rita frukt om synlig
+        if (showFruit) {
+            g2d.drawImage(fruitImage, fruitX, fruitY, tileSize, tileSize, null);
+        }
+        
         // Rita spöken
         for (Block ghost : ghosts) {
             g2d.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
@@ -1274,46 +1292,34 @@ public class PacMan extends JPanel {
             g2d.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
         }
         
-        // Rita poäng och liv
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.BOLD, 20));
-        g2d.drawString("Poäng: " + score, 10, 25);
-        g2d.drawString("Liv: " + lives, boardWidth - 80, 25);
+        // Rita HUD med poäng och liv
+        drawHUD(g2d);
         
-        // Rita poängökning när något äts upp
-        if (scoreDisplayTimer > 0) {
-            int alpha = (scoreDisplayTimer > 10) ? 255 : scoreDisplayTimer * 25;
-            g2d.setColor(new Color(255, 255, 0, alpha));
-            g2d.setFont(new Font("Arial", Font.BOLD, 16));
-            g2d.drawString(scoreDisplayText, scoreDisplayPosition.x, scoreDisplayPosition.y);
-            scoreDisplayTimer--;
-        }
-        
-        // Rita meddelande om spelet är över eller har vunnits
+        // Rita Game Over/Win skärm
         if (gameOver) {
-            g2d.setColor(new Color(255, 0, 0, 200));
-            g2d.setFont(titleFont);
-            String text = "GAME OVER";
-            int textWidth = g2d.getFontMetrics().stringWidth(text);
-            g2d.drawString(text, (boardWidth - textWidth) / 2, boardHeight / 2);
+            g2d.setColor(new Color(0, 0, 0, 200)); // Halvgenomskinlig svart
+            g2d.fillRect(0, 0, getWidth(), getHeight());
             
-            g2d.setColor(Color.WHITE);
+            g2d.setColor(Color.RED);
+            g2d.setFont(titleFont);
+            g2d.drawString("GAME OVER", boardWidth/2 - 150, boardHeight/2);
+            
+            g2d.setColor(Color.YELLOW);
             g2d.setFont(gameFont);
-            String subText = "Tryck på SPACE för att spela igen";
-            int subTextWidth = g2d.getFontMetrics().stringWidth(subText);
-            g2d.drawString(subText, (boardWidth - subTextWidth) / 2, boardHeight / 2 + 50);
+            g2d.drawString("TRYCK ENTER FÖR ATT SPELA IGEN", boardWidth/2 - 240, boardHeight/2 + 60);
+            g2d.drawString("POÄNG: " + score, boardWidth/2 - 80, boardHeight/2 + 120);
         } else if (gameWon) {
-            g2d.setColor(new Color(0, 255, 0, 200));
-            g2d.setFont(titleFont);
-            String text = "DU VANN!";
-            int textWidth = g2d.getFontMetrics().stringWidth(text);
-            g2d.drawString(text, (boardWidth - textWidth) / 2, boardHeight / 2);
+            g2d.setColor(new Color(0, 0, 0, 200)); // Halvgenomskinlig svart
+            g2d.fillRect(0, 0, getWidth(), getHeight());
             
-            g2d.setColor(Color.WHITE);
+            g2d.setColor(Color.GREEN);
+            g2d.setFont(titleFont);
+            g2d.drawString("DU VANN!", boardWidth/2 - 130, boardHeight/2);
+            
+            g2d.setColor(Color.YELLOW);
             g2d.setFont(gameFont);
-            String subText = "Tryck på SPACE för att spela igen";
-            int subTextWidth = g2d.getFontMetrics().stringWidth(subText);
-            g2d.drawString(subText, (boardWidth - subTextWidth) / 2, boardHeight / 2 + 50);
+            g2d.drawString("TRYCK ENTER FÖR NÄSTA NIVÅ", boardWidth/2 - 210, boardHeight/2 + 60);
+            g2d.drawString("POÄNG: " + score, boardWidth/2 - 80, boardHeight/2 + 120);
         } else if (gamePaused) {
             g2d.setColor(new Color(100, 100, 255, 200));
             g2d.setFont(titleFont);
@@ -1326,5 +1332,183 @@ public class PacMan extends JPanel {
             int subTextWidth = g2d.getFontMetrics().stringWidth(subText);
             g2d.drawString(subText, (boardWidth - subTextWidth) / 2, boardHeight / 2 + 50);
         }
+    }
+
+    // Metod för att rita poäng och livräknare i retrostil
+    private void drawHUD(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Rita poäng
+        g2d.setFont(scoreFont);
+        g2d.setColor(Color.WHITE);
+        g2d.drawString("SCORE: " + score, 30, 30);
+        
+        // Rita high score
+        g2d.drawString("HIGH SCORE: " + highScore, boardWidth/2 - 80, 30);
+        
+        // Rita livräknare med små Pac-Man-ikoner
+        for (int i = 0; i < lives; i++) {
+            g2d.drawImage(pacManImages[0], boardWidth - 150 + i * 40, 15, 20, 20, null);
+        }
+        
+        // Rita aktuell nivå
+        g2d.drawString("LEVEL: " + level, boardWidth - 120, 30);
+        
+        // Visa "READY!" text vid start
+        if (showReady) {
+            g2d.setColor(Color.YELLOW);
+            g2d.setFont(gameFont);
+            g2d.drawString("READY!", boardWidth/2 - 60, boardHeight/2 + 20);
+        }
+        
+        // Visa poäng när spöke äts
+        if (pointsDisplayTimer > 0) {
+            g2d.setColor(Color.CYAN);
+            g2d.setFont(scoreFont);
+            g2d.drawString("" + pointsDisplayValue, pointsDisplayX, pointsDisplayY);
+        }
+    }
+
+    // Uppdatera poängberäkning och visa poäng på skärmen
+    private void addScore(int points, int x, int y) {
+        score += points;
+        
+        // Uppdatera high score om applicerbart
+        if (score > highScore) {
+            highScore = score;
+        }
+        
+        // Visa poäng på skärmen temporärt
+        if (points >= 200) { // Bara visa för spöken och större bonusar
+            pointsDisplayValue = points;
+            pointsDisplayX = x;
+            pointsDisplayY = y;
+            pointsDisplayTimer = 60; // Visa i 1 sekund (60 frames)
+        }
+    }
+
+    // Lägg till metod för att visa frukt
+    private void showFruit() {
+        showFruit = true;
+        fruitTimer = 300; // Visa i 5 sekunder (300 frames)
+        
+        // Placera frukten någonstans i mitten av banan
+        fruitX = 14 * tileSize;
+        fruitY = 17 * tileSize;
+        
+        // Skapa fruktbilden direkt utan att anropa saknade metoder
+        BufferedImage cherryImage = new BufferedImage(30, 30, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = (Graphics2D) cherryImage.getGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        if (level == 1) {
+            // Rita körsbär
+            g.setColor(Color.RED);
+            g.fillOval(5, 15, 10, 10);
+            g.fillOval(15, 15, 10, 10);
+            
+            // Stjälkar
+            g.setColor(new Color(139, 69, 19));
+            g.setStroke(new BasicStroke(2));
+            g.drawLine(10, 15, 15, 5);
+            g.drawLine(20, 15, 15, 5);
+            
+            fruitBonus = 100;
+        } else if (level == 2) {
+            // Rita jordgubbe
+            g.setColor(Color.RED);
+            g.fillOval(5, 10, 20, 20);
+            
+            // Blad
+            g.setColor(Color.GREEN);
+            g.fillOval(10, 5, 10, 10);
+            
+            // Prickar (frön)
+            g.setColor(Color.YELLOW);
+            for(int i = 0; i < 8; i++) {
+                g.fillOval(8 + (i % 3) * 7, 12 + (i / 3) * 6, 2, 2);
+            }
+            
+            fruitBonus = 300;
+        } else {
+            // Standardfrukt (körsbär)
+            g.setColor(Color.RED);
+            g.fillOval(5, 15, 10, 10);
+            g.fillOval(15, 15, 10, 10);
+            
+            // Stjälkar
+            g.setColor(new Color(139, 69, 19));
+            g.setStroke(new BasicStroke(2));
+            g.drawLine(10, 15, 15, 5);
+            g.drawLine(20, 15, 15, 5);
+            
+            fruitBonus = 100 * level;
+        }
+        
+        g.dispose();
+        fruitImage = cherryImage;
+    }
+
+    // Skapa en restartLevel-metod
+    private void restartLevel() {
+        // Återställ positioner för alla spelare och spöken
+        resetPositions();
+        
+        // Återställ timers och spelläge
+        ghostsScared = false;
+        scaredTimer = 0;
+        ghostCombo = 1;
+        
+        // Visa "READY!" text igen
+        showReady = true;
+        readyTimer = 120;
+    }
+
+    // Uppdatera updateGame-metoden för att hantera timers för retro-element
+    private void updateGame() {
+        if (gameOver || gameWon || gamePaused) {
+            return;
+        }
+        
+        // Hantera "READY!" text vid start
+        if (showReady) {
+            readyTimer--;
+            if (readyTimer <= 0) {
+                showReady = false;
+            }
+            return; // Ingen rörelse medan "READY!" visas
+        }
+        
+        // Uppdatera animationsräknare
+        animationCounter++;
+        if (animationCounter % animationSpeed == 0) {
+            pacManMouthOpen = !pacManMouthOpen;
+        }
+        
+        // Uppdatera frukttimer
+        if (showFruit) {
+            fruitTimer--;
+            if (fruitTimer <= 0) {
+                showFruit = false;
+            }
+        } else {
+            // Slumpmässigt visa frukt var 10:e sekund
+            if (random.nextInt(600) == 1) { // Ungefär var 10:e sekund med 60 FPS
+                showFruit();
+            }
+        }
+        
+        // Uppdatera scared-timer för spöken
+        if (scaredTimer > 0) {
+            scaredTimer--;
+        }
+        
+        // Uppdatera timer för poängvisning
+        if (pointsDisplayTimer > 0) {
+            pointsDisplayTimer--;
+        }
+        
+        // ... (befintlig kod för rörelse och kollisioner) ...
     }
 }
