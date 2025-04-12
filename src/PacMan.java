@@ -11,36 +11,40 @@ import java.awt.BasicStroke;
 
 public class PacMan extends JPanel {
 
-    class Block {
-        int x;
-        int y;
-        int width;
-        int height;
-        Image image;
+    // Enum för spökets olika lägen
+    private enum GhostMode {
+        CHASE, SCATTER, FRIGHTENED, EATEN
+    }
 
-        int startX;
-        int startY;
-
-        int prevX;
-        int prevY;
-
-        boolean inCage;
-        int cageTimer;
-        int ghostIndex;
-
-        Block(Image image, int x, int y, int width, int height) {
-            this.image = image;
+    private class Block {
+        public int x, y, width, height, prevX, prevY;
+        public int startX, startY;
+        public int direction = 0; // 0=upp, 1=höger, 2=ner, 3=vänster
+        public int ghostIndex = -1; // För att spåra vilket spöke det är
+        public boolean isActive = true;
+        public boolean isScared = false;
+        public int scaredTimer = 0;
+        public boolean inCage = false;
+        public int cageTimer = 0;
+        public boolean isEaten = false; // Ny flagga för uppätna spöken
+        public Image image;  // Bilden som ska ritas
+        
+        // För kollisionshantering och rörelsebegränsning
+        public Block(int x, int y, int width, int height) {
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
             this.startX = x;
-            this.startY = y;
+            this.startY = y;    
             this.prevX = x;
             this.prevY = y;
-            this.inCage = false;
-            this.cageTimer = 0;
-            this.ghostIndex = 0;
+        }
+        
+        // Konstruktor med bild
+        public Block(Image image, int x, int y, int width, int height) {
+            this(x, y, width, height);
+            this.image = image;
         }
     }
 
@@ -58,6 +62,7 @@ public class PacMan extends JPanel {
     private int pacmanVelocityY = 0;
     private int pacmanSpeed = 4; // Ändrat från 3 till 4 för snabbare Pac-Man
     private int pacManDirection = 0; // 0=höger, 1=ner, 2=vänster, 3=upp
+    private int nextDirection = -1; // Buffrad riktning (-1 = ingen)
     private boolean pacManMouthOpen = true;
     private int animationCounter = 0;
     private int animationSpeed = 5; // Lite långsammare för tydligare animationer
@@ -104,27 +109,27 @@ public class PacMan extends JPanel {
         "XoooooooooooooooooooooooooooooX",
         "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
         "XoXXXXoXXoXXXXXXXXXoXXoXXXXoXoX",
-        "XooooooooooooXXooooooooooooooX",
-        "XXXXXXoXXXXXoXXoXXXXXoXXXXXXXX",
-        "     XoXXXXXoXXoXXXXXoX       ",
-        "     XoXX          XXoX       ",
-        "     XoXX XX    XX XXoX       ",
-        "XXXXXXoXX X      X XXoXXXXXXXX",
-        "      o   XrbpO  X   o        ",
-        "XXXXXXoXX X      X XXoXXXXXXXX",
-        "     XoXX XXXXXXXX XXoX       ",
-        "     XoXX          XXoX       ",
-        "     XoXX XXXXXXXXoXXoX       ",
-        "XXXXXXoXX XXXXXXXXoXXoXXXXXXXX",
         "XooooooooooooXXoooooooooooooooX",
-        "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
-        "XoXXXXoXXXXXoXXoXXXXXoXXXXXoXoX",
-        "XEoXXoooooooPooooooooXXoXXoEooX",
+        "XXXXXXoXXXXXoXXoXXXXXoXXXXXXXXX",
+        "X    XoXXXXXoXXoXXXXXoX       X",
+        "X    XoXX          XXoX       X",
+        "X    XoXX X      X XXoX       X",
+        "XXXXXXoXX X      X XXoXXXXXXXXX",
+        "      o    rbpO      o        ",
+        "XXXXXXoXX X      X XXoXXXXXXXXX",
+        "X    XoXX XXXXXXXX XXoX       X",
+        "X    XoXX          XXoX       X",
+        "X    XoXX XXXXXXXXoXXoX       X",
+        "XXXXXXoXX XXXXXXXXoXXoXXXXXXXXX",
+        "XooooooooooooXXoooooooooooooooX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXXXXoX",
+        "XoXXXXoXXXXXoXXoXXXXXoXXXXXXXoX",
+        "XEoXXoooooooPooooooooooooooEooX",
         "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXoX",
         "XXoXXoXXoXXXXXXXXXoXXoXXoXXXXoX",
         "XooooooooooooXXoooooooooooooooX",
-        "XoXXXXXXXXXXoXXoXXXXXXXXXXXoXoX",
-        "XoXXXXXXXXXXoXXoXXXXXXXXXXXoXoX",
+        "XoXXXXXXXXXXoXXoXXXXXXXXXXXXXoX",
+        "XoXXXXXXXXXXoXXoXXXXXXXXXXXXXoX",
         "XoooooooooooooooooooooooooooooX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     };
@@ -142,10 +147,29 @@ public class PacMan extends JPanel {
     private Image[] ghostImages;
     private Image[] pacManImages;
     private Image scaredGhostImage;
+    private Image eatenGhostImage; // Bild för uppätna spöken (bara ögon)
 
     private boolean ghostsScared = false;
     private int scaredTimer = 0;
     private int scaredDuration = 300; // Hur länge spöken är skrämda (i uppdateringar)
+
+    // Chase/Scatter-läge
+    private GhostMode currentGhostMode = GhostMode.SCATTER; // Starta i SCATTER
+    private int modeTimer = 0;
+    private final int SCATTER_DURATION = 420; // 7 sekunder (7 * 60)
+    private final int CHASE_DURATION = 1200; // 20 sekunder (20 * 60)
+    private int modeChangeCounter = 0; // För att hantera kortare chase/scatter senare i spelet
+
+    // Scatter-målkoordinater (utanför spelplanen för att simulera hörn)
+    private final Point[] scatterTargets = {
+        new Point(boardWidth + tileSize * 2, -tileSize * 2),    // Röd (Blinky) - Övre högra
+        new Point(-tileSize * 2, -tileSize * 2),               // Rosa (Pinky) - Övre vänstra
+        new Point(boardWidth + tileSize * 2, boardHeight + tileSize * 2), // Blå (Inky) - Nedre högra
+        new Point(-tileSize * 2, boardHeight + tileSize * 2)    // Orange (Clyde) - Nedre vänstra
+    };
+
+    // Spökhusets position (används som mål för uppätna spöken)
+    private final Point ghostHouseEntry = new Point(15 * tileSize + tileSize / 2, 13 * tileSize + tileSize / 2);
 
     // Förbättrad poängräkning och visuell feedback
     private int foodPoints = 10;    // Poäng för vanlig mat
@@ -198,6 +222,7 @@ public class PacMan extends JPanel {
         
         // Skapa skrämd spökbild
         scaredGhostImage = GameImages.createScaredGhostImage();
+        eatenGhostImage = GameImages.createEatenGhostImage(0); // Skapa bild för uppätna spöken
     }
 
     public void loadMap() {
@@ -226,24 +251,28 @@ public class PacMan extends JPanel {
                     // Rött spöke
                     System.out.println("Hittade r på rad " + row + ", kolumn " + col);
                     Block ghost = new Block(ghostImages[0], col * tileSize, row * tileSize, tileSize, tileSize);
+                    ghost.ghostIndex = 0;
                     ghosts.add(ghost);
                     System.out.println("Lagt till rött spöke på position " + ghost.x + "," + ghost.y);
                 } else if (tile == 'p') {
                     // Rosa spöke
                     System.out.println("Hittade p på rad " + row + ", kolumn " + col);
                     Block ghost = new Block(ghostImages[1], col * tileSize, row * tileSize, tileSize, tileSize);
+                    ghost.ghostIndex = 1;
                     ghosts.add(ghost);
                     System.out.println("Lagt till rosa spöke på position " + ghost.x + "," + ghost.y);
                 } else if (tile == 'b') {
                     // Blått spöke
                     System.out.println("Hittade b på rad " + row + ", kolumn " + col);
                     Block ghost = new Block(ghostImages[2], col * tileSize, row * tileSize, tileSize, tileSize);
+                    ghost.ghostIndex = 2;
                     ghosts.add(ghost);
                     System.out.println("Lagt till blått spöke på position " + ghost.x + "," + ghost.y);
                 } else if (tile == 'O') {
                     // Orange spöke - ändrat från 'o' till 'O' för att skilja från mat
                     System.out.println("Hittade O på rad " + row + ", kolumn " + col);
                     Block ghost = new Block(ghostImages[3], col * tileSize, row * tileSize, tileSize, tileSize);
+                    ghost.ghostIndex = 3;
                     ghosts.add(ghost);
                     System.out.println("Lagt till orange spöke på position " + ghost.x + "," + ghost.y);
                 } else if (tile == 'P') {
@@ -292,6 +321,7 @@ public class PacMan extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
+                // System.out.println("Key Pressed: " + KeyEvent.getKeyText(keyCode)); // DEBUG REMOVED
                 
                 if (gameOver || gameWon) {
                     if (keyCode == KeyEvent.VK_ENTER) {
@@ -301,31 +331,23 @@ public class PacMan extends JPanel {
                 }
                 
                 // Kontrollera att pacman inte är null innan vi försöker ändra riktning
-                if (pacman == null) return;
+                if (pacman == null || gamePaused || showReady) {
+                    // System.out.println("Input ignored (pacman=" + pacman + ", paused=" + gamePaused + ", ready=" + showReady + ")"); // DEBUG REMOVED
+                    return; // Tillåt inte input under paus/ready
+                }
                 
+                // int oldNextDirection = nextDirection; // DEBUG REMOVED
                 if (keyCode == KeyEvent.VK_UP) {
-                    pacmanVelocityX = 0;
-                    pacmanVelocityY = -pacmanSpeed;
-                    pacManDirection = 3; // Upp
-                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
+                    nextDirection = 3; // Sätt nästa riktning istället för direkt hastighet
                 } 
                 else if (keyCode == KeyEvent.VK_DOWN) {
-                    pacmanVelocityX = 0;
-                    pacmanVelocityY = pacmanSpeed;
-                    pacManDirection = 1; // Ner
-                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
+                    nextDirection = 1; // Sätt nästa riktning istället för direkt hastighet
                 } 
                 else if (keyCode == KeyEvent.VK_LEFT) {
-                    pacmanVelocityX = -pacmanSpeed;
-                    pacmanVelocityY = 0;
-                    pacManDirection = 2; // Vänster
-                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
+                    nextDirection = 2; // Sätt nästa riktning istället för direkt hastighet
                 }
                 else if (keyCode == KeyEvent.VK_RIGHT) {
-                    pacmanVelocityX = pacmanSpeed;
-                    pacmanVelocityY = 0;
-                    pacManDirection = 0; // Höger
-                    pacman.image = pacManImages[pacManDirection*2]; // Öppen mun
+                    nextDirection = 0; // Sätt nästa riktning istället för direkt hastighet
                 }
                 else if (keyCode == KeyEvent.VK_M) {
                     // Tryck M för att slå på/av ljud
@@ -335,6 +357,9 @@ public class PacMan extends JPanel {
                     // Lägg till paus-funktion
                     gamePaused = !gamePaused;
                 }
+                // if (oldNextDirection != nextDirection) { // DEBUG REMOVED
+                //     System.out.println("Next Direction set to: " + nextDirection); // DEBUG REMOVED
+                // } // DEBUG REMOVED
             }
         };
         
@@ -379,7 +404,54 @@ public class PacMan extends JPanel {
     }
 
     private void update() {
+        // Hantera "READY!" text vid start
+        if (showReady) {
+            readyTimer--;
+            if (readyTimer <= 0) {
+                showReady = false;
+            }
+            repaint(); // Rita om för att visa nedräkning eller när texten försvinner
+            return; // Ingen speluppdatering medan "READY!" visas
+        }
+
+        // Kör resten av uppdateringen endast om spelet inte är över, pausat, eller i "READY!"-läge
         if (!gameOver && !gamePaused) {
+
+            // --- Hantera Chase/Scatter-timer --- 
+            modeTimer++;
+            boolean switchMode = false;
+
+            if (currentGhostMode == GhostMode.SCATTER) {
+                if (modeTimer >= SCATTER_DURATION) {
+                    currentGhostMode = GhostMode.CHASE;
+                    modeTimer = 0;
+                    switchMode = true;
+                    System.out.println("Switching to CHASE mode");
+                }
+            } else if (currentGhostMode == GhostMode.CHASE) {
+                if (modeTimer >= CHASE_DURATION) {
+                    currentGhostMode = GhostMode.SCATTER;
+                    modeTimer = 0;
+                    switchMode = true;
+                    modeChangeCounter++; // Räkna upp antal byten
+                    System.out.println("Switching to SCATTER mode");
+                }
+            }
+
+            // Om läget byttes, tvinga spöken att vända håll (om de inte är FRIGHTENED/EATEN)
+            if (switchMode) {
+                for (Block ghost : ghosts) {
+                    if (!ghost.isScared && !ghost.isEaten) {
+                         // Tvinga omvänd riktning (om möjligt)
+                         int oppositeDirection = (ghost.direction + 2) % 4;
+                         if(canMove(ghost.x, ghost.y, oppositeDirection)) {
+                              ghost.direction = oppositeDirection;
+                         }
+                    }
+                }
+            }
+            // --- Slut på Chase/Scatter-logik ---
+
             // Uppdatera Pac-Man
             updatePacMan();
             
@@ -389,225 +461,98 @@ public class PacMan extends JPanel {
             // Kontrollera kollision med spöken
             checkGhostCollision();
             
-            // Uppdatera skrämd-timer
-            if (ghostsScared) {
-                scaredTimer++;
-                if (scaredTimer >= scaredDuration) {
-                    ghostsScared = false;
-                    
-                    // Återställ spökbilder
-                    int ghostIndex = 0;
-                    for (Block ghost : ghosts) {
-                        ghost.image = ghostImages[ghostIndex % 4];
-                        ghostIndex++;
-                    }
-                }
-            }
-            
-            // Kontrollera om alla pellets är uppätna
-            checkLevelComplete();
-            
-            // Uppdatera animationer
-            updateAnimation();
+            // Uppdatera animationer (kanske flytta till egen metod?)
+            // updateAnimation(); // Anropas separat nedanför
+
+            // Kontrollera om nivån är klar
+            checkLevelComplete(); // Lade till detta anrop
         }
         
-        // Tvinga omritning
+        // Tvinga omritning oavsett paus/game over för att visa meddelanden
         repaint();
     }
     
     private void updatePacMan() {
-        // Kontrollera att pacman inte är null
-        if (pacman == null) return;
+        // System.out.println("updatePacMan - Current Direction: " + pacManDirection + ", Next Direction: " + nextDirection); // DEBUG REMOVED
+        // Spara föregående position för kollisionsupplösning
+        pacman.prevX = pacman.x;
+        pacman.prevY = pacman.y;
         
-        // Uppdatera Pac-Man-position
-        int newX = pacman.x + pacmanVelocityX;
-        int newY = pacman.y + pacmanVelocityY;
-        
-        // Hantera tunnlar på sidorna - förbättrad tunnelhantering
-        if (newX < -pacman.width) {
-            newX = boardWidth;
-        } else if (newX > boardWidth) {
-            newX = -pacman.width;
-        }
-        
-        // Hantera tunnlar vertikalt också
-        if (newY < -pacman.height) {
-            newY = boardHeight;
-        } else if (newY > boardHeight) {
-            newY = -pacman.height;
-        }
-        
-        // Kontrollera kollision med väggar
-        boolean collision = false;
-        
-        // Minskat toleransen för mer precis styrning
-        int collisionTolerance = 5; 
-        for (Block wall : walls) {
-            // Förbättrad kollisionsdetektering med mindre tolerans
-            Rectangle pacmanRect = new Rectangle(newX + collisionTolerance/2, newY + collisionTolerance/2, 
-                                               pacman.width - collisionTolerance, pacman.height - collisionTolerance);
-            Rectangle wallRect = new Rectangle(wall.x, wall.y, wall.width, wall.height);
+        // Hantera buffrad styrningsinmatning
+        if (nextDirection != -1) {
+            // Testa om vi kan svänga i den buffrade riktningen
+            int testX = pacman.x;
+            int testY = pacman.y;
             
-            if (pacmanRect.intersects(wallRect)) {
-                collision = true;
-                break;
+            if (nextDirection == 0) testX += pacmanSpeed; // Höger
+            else if (nextDirection == 1) testY += pacmanSpeed; // Ner
+            else if (nextDirection == 2) testX -= pacmanSpeed; // Vänster
+            else if (nextDirection == 3) testY -= pacmanSpeed; // Upp
+            
+            if (!checkPacManWallCollision(testX, testY)) {
+                // Om vi kan svänga, uppdatera huvudriktningen
+                pacManDirection = nextDirection;
+                nextDirection = -1; // Nollställ bufferten
             }
         }
         
-        // Uppdatera position om ingen kollision
-        if (!collision) {
-            pacman.x = newX;
-            pacman.y = newY;
-            
-            // Animera Pac-Man om han rör sig
-            if (pacmanVelocityX != 0 || pacmanVelocityY != 0) {
-                animationCounter++;
-                if (animationCounter >= animationSpeed) {
-                    pacManMouthOpen = !pacManMouthOpen;
-                    animationCounter = 0;
-                    
-                    // Uppdatera Pac-Man-bilden baserat på riktning och om munnen är öppen
-                    int imageIndex = pacManDirection * 2;
-                    if (!pacManMouthOpen) {
-                        imageIndex += 1;
-                    }
-                    pacman.image = pacManImages[imageIndex];
-                }
-            } else {
-                // Om Pac-Man står stilla, visa honom med stängd mun
-                pacman.image = pacManImages[pacManDirection * 2 + 1];
+        // Försök att flytta Pac-Man i den nuvarande huvudriktningen
+        boolean moved = false;
+        if (pacManDirection == 0) { // Höger
+            if (!checkPacManWallCollision(pacman.x + pacmanSpeed, pacman.y)) {
+                pacman.x += pacmanSpeed;
+                moved = true;
             }
-            
-            // Automatisk ätning av mat och power pellets
-            checkFoodCollision();
-        } else {
-            // Förbättrad automatisk justering vid kollision
-            
-            // Om vi kolliderar, försök att justera position till närmaste ruta
-            int tileX = Math.round((float)pacman.x / tileSize) * tileSize;
-            int tileY = Math.round((float)pacman.y / tileSize) * tileSize;
-            
-            // Beräkna avståndet mellan nuvarande position och rutnätets position
-            int deltaX = Math.abs(pacman.x - tileX);
-            int deltaY = Math.abs(pacman.y - tileY);
-            
-            if (pacmanVelocityX != 0) {
-                // Vi rör oss horisontellt, justera vertikalt om nära
-                if (deltaY < tileSize/3) {
-                    newY = tileY;
-                    newX = pacman.x;
-                    
-                    // Kolla kollision igen
-                    collision = false;
-                    for (Block wall : walls) {
-                        Rectangle pacmanRect = new Rectangle(newX + collisionTolerance/2, newY + collisionTolerance/2, 
-                                                            pacman.width - collisionTolerance, pacman.height - collisionTolerance);
-                        Rectangle wallRect = new Rectangle(wall.x, wall.y, wall.width, wall.height);
-                        
-                        if (pacmanRect.intersects(wallRect)) {
-                            collision = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!collision) {
-                        pacman.y = newY;
-                    }
-                }
-            } else if (pacmanVelocityY != 0) {
-                // Vi rör oss vertikalt, justera horisontellt om nära
-                if (deltaX < tileSize/3) {
-                    newX = tileX;
-                    newY = pacman.y;
-                    
-                    // Kolla kollision igen
-                    collision = false;
-                    for (Block wall : walls) {
-                        Rectangle pacmanRect = new Rectangle(newX + collisionTolerance/2, newY + collisionTolerance/2, 
-                                                            pacman.width - collisionTolerance, pacman.height - collisionTolerance);
-                        Rectangle wallRect = new Rectangle(wall.x, wall.y, wall.width, wall.height);
-                        
-                        if (pacmanRect.intersects(wallRect)) {
-                            collision = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!collision) {
-                        pacman.x = newX;
-                    }
-                }
+        } else if (pacManDirection == 1) { // Ner
+            if (!checkPacManWallCollision(pacman.x, pacman.y + pacmanSpeed)) {
+                pacman.y += pacmanSpeed;
+                moved = true;
+            }
+        } else if (pacManDirection == 2) { // Vänster
+            if (!checkPacManWallCollision(pacman.x - pacmanSpeed, pacman.y)) {
+                pacman.x -= pacmanSpeed;
+                moved = true;
+            }
+        } else if (pacManDirection == 3) { // Upp
+            if (!checkPacManWallCollision(pacman.x, pacman.y - pacmanSpeed)) {
+                pacman.y -= pacmanSpeed;
+                moved = true;
             }
         }
+        
+        // Uppdatera hastighetsvariablerna baserat på om vi rörde oss
+        pacmanVelocityX = pacman.x - pacman.prevX;
+        pacmanVelocityY = pacman.y - pacman.prevY;
+        
+        // Kontrollera tunnel-passage
+        handleTunnel(pacman);
+        
+        // Kontrollera matkollision
+        checkFoodCollision();
+        
+        // Uppdatera animation
+        if (moved) { // Använd 'moved' istället för att kolla velocity
+            animationCounter++;
+            if (animationCounter >= animationSpeed) {
+                pacManMouthOpen = !pacManMouthOpen;
+                animationCounter = 0;
+            }
+        }
+        
+        // Uppdatera Pac-Man-bilden baserat på riktning och animation
+        int imageIndex = pacManDirection * 2; // Basindex för riktning (öppen mun)
+        if (!pacManMouthOpen || !moved) { // Använd stängd mun om munnen är stängd eller om vi står stilla
+            imageIndex += 1;  // Index för stängd mun
+        }
+        pacman.image = pacManImages[imageIndex];
     }
-    
-    // Separerar kollisionslogiken för att äta mat för renare kod
-    private void checkFoodCollision() {
-        // Kontrollera om Pac-Man äter mat
-        Iterator<Block> foodIterator = foods.iterator();
-        while (foodIterator.hasNext()) {
-            Block food = foodIterator.next();
-            if (pacman.x < food.x + food.width && 
-                pacman.x + pacman.width > food.x && 
-                pacman.y < food.y + food.height && 
-                pacman.y + pacman.height > food.y) {
-                foodIterator.remove();
-                score += foodPoints;
-                soundManager.play("eat");
-                
-                // Visuell feedback när mat äts upp
-                scoreDisplayText = "+" + foodPoints;
-                scoreDisplayPosition.x = food.x;
-                scoreDisplayPosition.y = food.y;
-                scoreDisplayTimer = 20; // Visa i 20 frames
-                
-                break;
-            }
-        }
-        
-        // Kontrollera om Pac-Man äter power pellet
-        Iterator<Block> powerPelletIterator = powerPellets.iterator();
-        while (powerPelletIterator.hasNext()) {
-            Block powerPellet = powerPelletIterator.next();
-            if (pacman.x < powerPellet.x + powerPellet.width && 
-                pacman.x + pacman.width > powerPellet.x && 
-                pacman.y < powerPellet.y + powerPellet.height && 
-                pacman.y + pacman.height > powerPellet.y) {
-                powerPelletIterator.remove();
-                score += pelletPoints;
-                ghostsScared = true;
-                scaredTimer = 0;
-                // Återställ combo-räknaren när en ny power pellet tas
-                ghostCombo = 1;
-                soundManager.play("power");
-                
-                // Visuell feedback när power pellet äts upp
-                scoreDisplayText = "+" + pelletPoints;
-                scoreDisplayPosition.x = powerPellet.x;
-                scoreDisplayPosition.y = powerPellet.y;
-                scoreDisplayTimer = 30; // Visa lite längre
-                
-                // Ändra spökenas utseende
-                for (Block ghost : ghosts) {
-                    ghost.image = scaredGhostImage;
-                }
-                break;
-            }
-        }
-    }
-    
+
+    // checkPacManWallCollision, canMovePacMan, checkFoodCollision etc. remain the same...
+
     private void moveGhosts() {
-        if (ghostsScared && scaredTimer == 0) {
-            // Återställ spökena till normalläge när timer slut
-            ghostsScared = false;
-            ghostCombo = 1; // Återställ kombo
-        }
-        
-        // Uppdatera rädslotimern om aktiv
-        if (ghostsScared && scaredTimer > 0) {
-            scaredTimer--;
-        }
-        
+        // Uppdatera global scared timer (används inte längre per spöke)
+        // if (ghostsScared) { scaredTimer++; ... }
+
         // Släpp ut spökena från burens centrum med jämna mellanrum
         ghostReleaseTimer++;
         if (ghostReleaseTimer >= ghostReleaseInterval) {
@@ -625,260 +570,153 @@ public class PacMan extends JPanel {
         
         int ghostIndex = 0;
         for (Block ghost : ghosts) {
+
+            // Om spöket är uppätet och inne i buren, återställ det
+            if (ghost.isEaten && isGhostInCage(ghost)) {
+                 if (Math.abs(ghost.x - ghost.startX) < ghostSpeed && Math.abs(ghost.y - ghost.startY) < ghostSpeed) {
+                      ghost.isEaten = false;
+                      ghost.inCage = true; // Se till att det är i buren
+                      ghost.cageTimer = 0; // Nollställ timer så det kan börja röra sig i buren
+                      updateGhostImage(ghost); // Uppdatera till normal bild
+                      System.out.println("Ghost " + ghost.ghostIndex + " respawned.");
+                      ghostIndex++;
+                      continue; // Gå till nästa spöke
+                 }
+            }
+
             // Kontrollera om spöket är inne i spökgården
             boolean isInCage = isGhostInCage(ghost);
             
-            if (isInCage && !ghostsReleased[ghostIndex]) {
+            if (isInCage && !ghostsReleased[ghostIndex % ghostsReleased.length]) {
                 // Rör spöket upp och ner inuti buren om det inte är utsläppt
                 moveGhostInCage(ghost);
                 ghostIndex++;
                 continue;
-            } else if (isInCage && ghostsReleased[ghostIndex]) {
+            } else if (isInCage && ghostsReleased[ghostIndex % ghostsReleased.length]) {
                 // Om spöket är i buren men ska vara utsläppt, flytta det uppåt mot utgången
                 releaseGhostFromCage(ghost);
                 ghostIndex++;
                 continue;
             }
             
-            // Hantera rörelserna för de utsläppta spökena
-            if (!ghostsScared) {
-                // Uppdatera spökets ögonriktning baserat på dess rörelseriktning
-                int eyeDirection = getGhostEyeDirection(ghost);
-                
-                if (ghostIndex == 0) { // Rött spöke (Blinky) - jagar Pac-Man direkt
-                    // Blinky jagar Pac-Man direkt (target = Pac-Man's position)
-                    moveGhostTowardTarget(ghost, pacman.x, pacman.y, 0.95);
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createRedGhostImage(eyeDirection);
-                    }
-                } else if (ghostIndex == 1) { // Rosa spöke (Pinky) - försöker hamna framför Pac-Man
-                    // Pinky försöker förutse vart Pac-Man är på väg och skära av
-                    int targetX = pacman.x;
-                    int targetY = pacman.y;
-                    
-                    // Beräkna en position 4 rutor framför Pac-Man baserat på hans riktning
-                    if (pacmanVelocityX > 0) { // Pacman rör sig åt höger
-                        targetX += 4 * tileSize;
-                    } else if (pacmanVelocityX < 0) { // Pacman rör sig åt vänster
-                        targetX -= 4 * tileSize;
-                    } else if (pacmanVelocityY > 0) { // Pacman rör sig nedåt
-                        targetY += 4 * tileSize;
-                    } else if (pacmanVelocityY < 0) { // Pacman rör sig uppåt
-                        // Simulera originalspelets "bug" där Pinky också siktar 4 rutor åt vänster
-                        targetY -= 4 * tileSize;
-                        targetX -= 4 * tileSize;
-                    }
-                    
-                    moveGhostTowardTarget(ghost, targetX, targetY, 0.90);
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createPinkGhostImage(eyeDirection);
-                    }
-                } else if (ghostIndex == 2) { // Blått spöke (Inky) - Kombination baserad på Blinky
-                    // Inky använder en kombination av Pac-Man och Blinky för att bestämma målpunkt
-                    // Först, hitta en punkt 2 rutor framför Pac-Man
-                    int intermediateX = pacman.x;
-                    int intermediateY = pacman.y;
-                    
-                    if (pacmanVelocityX > 0) { // Pacman rör sig åt höger
-                        intermediateX += 2 * tileSize;
-                    } else if (pacmanVelocityX < 0) { // Pacman rör sig åt vänster
-                        intermediateX -= 2 * tileSize;
-                    } else if (pacmanVelocityY > 0) { // Pacman rör sig nedåt
-                        intermediateY += 2 * tileSize;
-                    } else if (pacmanVelocityY < 0) { // Pacman rör sig uppåt
-                        // Simulera samma "bug" som Pinky
-                        intermediateY -= 2 * tileSize;
-                        intermediateX -= 2 * tileSize;
-                    }
-                    
-                    // Hitta Blinky (rött spöke)
-                    Block blinky = null;
-                    int blinkyIndex = 0;
-                    for (Block g : ghosts) {
-                        if (blinkyIndex == 0) {
-                            blinky = g;
-                            break;
-                        }
-                        blinkyIndex++;
-                    }
-                    
-                    // Beräkna Inky's målpunkt genom att "dubbla" vektorn från Blinky till mellanpunkten
-                    int targetX = intermediateX;
-                    int targetY = intermediateY;
-                    
-                    if (blinky != null) {
-                        // Beräkna vektorn från Blinky till mellanpunkten
-                        int vectorX = intermediateX - blinky.x;
-                        int vectorY = intermediateY - blinky.y;
-                        
-                        // Dubbla vektorn för att få målpunkten
-                        targetX = intermediateX + vectorX;
-                        targetY = intermediateY + vectorY;
-                    }
-                    
-                    moveGhostTowardTarget(ghost, targetX, targetY, 0.85);
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createCyanGhostImage(eyeDirection);
-                    }
-                } else { // Orange spöke (Clyde) - växlar mellan jakt och att fly
-                    // Clyde jagar Pac-Man när han är långt borta men flyr när han är nära
-                    double distanceToPacman = Math.sqrt(
-                        Math.pow(ghost.x - pacman.x, 2) + 
-                        Math.pow(ghost.y - pacman.y, 2)
-                    );
-                    
-                    if (distanceToPacman > 8 * tileSize) {
-                        // När långt borta, jaga Pac-Man
-                        moveGhostTowardTarget(ghost, pacman.x, pacman.y, 0.75);
-                    } else {
-                        // När nära, rör sig mot nedre vänstra hörnet
-                        moveGhostTowardTarget(ghost, 0, boardHeight, 0.75);
-                    }
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createOrangeGhostImage(eyeDirection);
-                    }
-                }
-            } else {
-                // När spökena är skrämda, rör de sig slumpmässigt och försöker undvika Pac-Man
-                moveGhostRandomly(ghost);
-                
-                // Blinka när powerup håller på att ta slut (sista 1/3 av tiden)
-                boolean shouldBlink = scaredTimer < scaredDuration / 3 && (scaredTimer / 5) % 2 == 0;
-                ghost.image = GameImages.createScaredGhostImage(shouldBlink);
+            // --- HÄMTA MÅLKOORDINAT BASERAT PÅ LÄGE --- 
+            int targetX = 0;
+            int targetY = 0;
+            GhostMode effectiveMode = currentGhostMode; // Starta med globalt läge
+
+            if (ghost.isEaten) {
+                effectiveMode = GhostMode.EATEN;
+            } else if (ghost.isScared) {
+                effectiveMode = GhostMode.FRIGHTENED;
             }
+
+            switch (effectiveMode) {
+                case FRIGHTENED:
+                    moveGhostRandomly(ghost);
+                    break; // Slumpmässig rörelse
+
+                case EATEN:
+                    targetX = ghostHouseEntry.x;
+                    targetY = ghostHouseEntry.y;
+                    moveGhostTowardTarget(ghost, targetX, targetY, true); // Tillåt att vända direkt
+                    break;
+
+                case SCATTER:
+                    targetX = scatterTargets[ghost.ghostIndex % 4].x;
+                    targetY = scatterTargets[ghost.ghostIndex % 4].y;
+                    moveGhostTowardTarget(ghost, targetX, targetY, false);
+                    break;
+
+                case CHASE:
+                    // Här kommer den specifika AI:n för varje spöke
+                    int ghostTypeIndex = ghost.ghostIndex;
+                    Block blinky = findGhostByType(0); // Hitta Blinky för Inkys logik
+
+                    if (ghostTypeIndex == 0) { // Rött spöke (Blinky)
+                        targetX = pacman.x;
+                        targetY = pacman.y;
+                    } else if (ghostTypeIndex == 1) { // Rosa spöke (Pinky)
+                        targetX = pacman.x;
+                        targetY = pacman.y;
+                        // Sikta 4 rutor framför Pac-Man i hans riktning
+                        int lookAhead = 4 * tileSize;
+                        if (pacManDirection == 3) targetY -= lookAhead;      // UPP
+                        else if (pacManDirection == 0) targetX += lookAhead; // HÖGER
+                        else if (pacManDirection == 1) targetY += lookAhead; // NER
+                        else if (pacManDirection == 2) targetX -= lookAhead; // VÄNSTER
+                    } else if (ghostTypeIndex == 2) { // Blått spöke (Inky)
+                        if (blinky != null) {
+                             // Beräkna punkt 2 rutor framför Pac-Man
+                             int pivotX = pacman.x;
+                             int pivotY = pacman.y;
+                             int lookAhead = 2 * tileSize;
+                             if (pacManDirection == 3) pivotY -= lookAhead;      // UPP
+                             else if (pacManDirection == 0) pivotX += lookAhead; // HÖGER
+                             else if (pacManDirection == 1) pivotY += lookAhead; // NER
+                             else if (pacManDirection == 2) pivotX -= lookAhead; // VÄNSTER
+
+                             // Beräkna vektor från Blinky till pivot
+                             int vecX = pivotX - blinky.x;
+                             int vecY = pivotY - blinky.y;
+
+                             // Dubbla vektorn och sätt målet från Blinkys position
+                             targetX = blinky.x + 2 * vecX;
+                             targetY = blinky.y + 2 * vecY;
+                        } else { // Fallback om Blinky inte hittas (bör inte hända)
+                            targetX = pacman.x;
+                            targetY = pacman.y;
+                        }
+                    } else { // Orange spöke (Clyde)
+                        double distance = Math.sqrt(Math.pow(ghost.x - pacman.x, 2) + Math.pow(ghost.y - pacman.y, 2));
+                        if (distance < 8 * tileSize) { // Om inom 8 rutor, gå till scatter-mål
+                            targetX = scatterTargets[ghost.ghostIndex % 4].x;
+                            targetY = scatterTargets[ghost.ghostIndex % 4].y;
+                        } else { // Annars, jaga Pac-Man
+                            targetX = pacman.x;
+                            targetY = pacman.y;
+                        }
+                    }
+                    moveGhostTowardTarget(ghost, targetX, targetY, false);
+                    break;
+            }
+            // --- SLUT PÅ MÅLBERÄKNING --- 
+            
+            // Uppdatera spökets utseende baserat på dess tillstånd och riktning
+            updateGhostImage(ghost);
             
             ghostIndex++;
         }
     }
     
-    // Uppdaterad hjälpmetod för att avgöra om ett spöke är inne i spökgården
-    private boolean isGhostInCage(Block ghost) {
-        // Definiera spökgårdens bounding box baserat på den nya layouten
-        int cageX1 = 13 * tileSize;
-        int cageY1 = 14 * tileSize;
-        int cageX2 = 18 * tileSize;
-        int cageY2 = 16 * tileSize;
-        
-        // Kontrollera om spöket är inom denna area
-        return ghost.x >= cageX1 && ghost.x <= cageX2 && 
-               ghost.y >= cageY1 && ghost.y <= cageY2;
-    }
-    
-    // Ny hjälpmetod för att bestämma spökögonens riktning baserat på rörelse
-    private int getGhostEyeDirection(Block ghost) {
-        // 0=höger, 1=ner, 2=vänster, 3=upp
-        if (ghost.x > ghost.prevX) return 0; // Rör sig åt höger
-        if (ghost.y > ghost.prevY) return 1; // Rör sig nedåt
-        if (ghost.x < ghost.prevX) return 2; // Rör sig åt vänster
-        if (ghost.y < ghost.prevY) return 3; // Rör sig uppåt
-        
-        // Standard om ingen rörelse detekterats
-        return 0; 
-    }
-    
-    // Ny metod för att röra spöket inuti buren
-    private void moveGhostInCage(Block ghost) {
-        // Låt spöket röra sig långsamt upp och ner i buren
-        // för att skapa illusionen av att de väntar på att släppas ut
-        int ghostCenterY = ghost.y + ghost.height / 2;
-        int cageTop = 14 * tileSize + 5;
-        int cageBottom = 16 * tileSize - 5;
-        
-        // Om spöket rör sig uppåt
-        if (ghost.prevY > ghost.y) {
-            if (ghostCenterY <= cageTop) {
-                // Byt riktning när spöket når toppen
-                ghost.prevY = ghost.y;
-                ghost.y += 1;
-            } else {
-                ghost.prevY = ghost.y;
-                ghost.y -= 1;
-            }
-        }
-        // Om spöket rör sig nedåt eller inte rör sig alls
-        else {
-            if (ghostCenterY >= cageBottom) {
-                // Byt riktning när spöket når botten
-                ghost.prevY = ghost.y;
-                ghost.y -= 1;
-            } else {
-                ghost.prevY = ghost.y;
-                ghost.y += 1;
-            }
-        }
-    }
-    
-    // Uppdaterad metod för att släppa ut spöket från buren
-    private void releaseGhostFromCage(Block ghost) {
-        // Konstanter för spökgårdens utgång
-        int exitX = 15 * tileSize + tileSize/2;
-        int exitY = 12 * tileSize; // Utgången är en rad högre upp
-        
-        // Centrera spöket i x-led först för att sedan gå uppåt mot utgången
-        int ghostCenterX = ghost.x + ghost.width / 2;
-        
-        // Om vi är tillräckligt nära utgången i y-led, fokusera på att centrera i x-led
-        if (ghost.y <= 13 * tileSize) {
-            // Om vi är vid eller över utgången, rör oss uppåt och ignorera x-centrering
-            ghost.prevY = ghost.y;
-            ghost.y -= ghostSpeed;
+    // Lägg till denna hjälpmetod för att uppdatera spökbilden baserat på typ och riktning
+    private void updateGhostImage(Block ghost) {
+        if (ghost.isEaten) {
+            ghost.image = eatenGhostImage;
+        } else if (ghost.isScared) {
+            // Skrämt spöke
+            boolean shouldBlink = ghost.scaredTimer < scaredDuration / 3 && (ghost.scaredTimer / 5) % 2 == 0;
+            ghost.image = GameImages.createScaredGhostImage(shouldBlink);
+        } else {
+            // Normalt spöke, uppdatera utseende baserat på typ och riktning
+            int eyeDirection = getGhostEyeDirection(ghost);
             
-            // Uppdatera spökets riktning till uppåt (3)
-            int ghostIndex = 0;
-            for (Block g : ghosts) {
-                if (g == ghost) {
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), 3);
-                    }
+            switch (ghost.ghostIndex) {
+                case 0: // Rött
+                    ghost.image = GameImages.createRedGhostImage(eyeDirection);
                     break;
-                }
-                ghostIndex++;
-            }
-        } 
-        else if (Math.abs(ghostCenterX - exitX) > ghostSpeed) {
-            // Flytta mot mitten av utgången först
-            ghost.prevX = ghost.x;
-            ghost.x += (ghostCenterX < exitX) ? ghostSpeed : -ghostSpeed;
-            
-            // Uppdatera spökets riktning baserat på dess rörelse
-            int ghostIndex = 0;
-            for (Block g : ghosts) {
-                if (g == ghost) {
-                    if (!ghostsScared) {
-                        int eyeDirection = (ghostCenterX < exitX) ? 0 : 2; // 0=höger, 2=vänster
-                        ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), eyeDirection);
-                    }
+                case 1: // Rosa
+                    ghost.image = GameImages.createPinkGhostImage(eyeDirection);
                     break;
-                }
-                ghostIndex++;
-            }
-        } 
-        else {
-            // När spöket är centrerat, flytta det uppåt
-            ghost.prevY = ghost.y;
-            ghost.y -= ghostSpeed;
-            
-            // Uppdatera spökets riktning till uppåt (3)
-            int ghostIndex = 0;
-            for (Block g : ghosts) {
-                if (g == ghost) {
-                    if (!ghostsScared) {
-                        ghost.image = GameImages.createGhostImage(getGhostColor(ghostIndex), 3);
-                    }
+                case 2: // Blått
+                    ghost.image = GameImages.createCyanGhostImage(eyeDirection);
                     break;
-                }
-                ghostIndex++;
+                case 3: // Orange
+                    ghost.image = GameImages.createOrangeGhostImage(eyeDirection);
+                    break;
+                default: // Standard
+                    ghost.image = GameImages.createRedGhostImage(eyeDirection);
+                    break;
             }
-        }
-    }
-    
-    private Color getGhostColor(int ghostIndex) {
-        switch (ghostIndex % 4) {
-            case 0: return new Color(255, 0, 0);      // Röd (Blinky)
-            case 1: return new Color(255, 192, 203);  // Rosa (Pinky)
-            case 2: return new Color(0, 255, 255);    // Cyan (Inky)
-            case 3: return new Color(255, 165, 0);    // Orange (Clyde)
-            default: return new Color(255, 0, 0);     // Default är röd
         }
     }
     
@@ -940,21 +778,27 @@ public class PacMan extends JPanel {
         for (Iterator<Block> it = ghosts.iterator(); it.hasNext();) {
             Block ghost = it.next();
             
+            // Ignorera kollision om spöket är uppätet
+            if (ghost.isEaten) continue;
+
             Rectangle ghostRect = new Rectangle(ghost.x, ghost.y, ghost.width, ghost.height);
             
             if (pacmanRect.intersects(ghostRect)) {
-                if (ghostsScared) {
+                if (ghost.isScared) {
                     // Beräkna poäng baserat på hur många spöken som ätits under samma power pellet
                     int ghostValue = 200 * (int)Math.pow(2, ghostCombo - 1);
                     ghostValue = Math.min(ghostValue, 1600); // Max 1600 poäng
                     addScore(ghostValue, ghost.x, ghost.y);
                     
-                    // Återställ spöket till startposition
-                    ghost.x = ghost.startX;
-                    ghost.y = ghost.startY;
-                    ghost.inCage = true;
-                    ghost.cageTimer = random.nextInt(60) + 60; // 1-2 sekunder i buren
+                    // Öka kombon för nästa spöke
+                    ghostCombo++;
                     
+                    // Sätt spöket till EATEN-läge istället för att återställa direkt
+                    ghost.isScared = false; // Inte längre skrämd
+                    ghost.isEaten = true;   // Nu uppäten
+                    ghost.scaredTimer = 0;
+                    updateGhostImage(ghost); // Visa bara ögon
+
                     soundManager.play("ghost"); // Spela ljudeffekt för att äta spöke
                 } else {
                     if (!gameOver) {
@@ -1017,234 +861,254 @@ public class PacMan extends JPanel {
     }
     
     // Metod för att röra spökena mot en specifik målpunkt
-    private void moveGhostTowardTarget(Block ghost, int targetX, int targetY, double chanceToFollow) {
-        // Tillgängliga riktningar (inte tillåtet att vända om direkt för spöken)
-        int[][] directions = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}}; // Höger, Ner, Vänster, Upp
+    // Lägg till en parameter allowReverse för att styra om spöket får vända 180 grader direkt
+    private void moveGhostTowardTarget(Block ghost, int targetX, int targetY, boolean allowReverseOverride) {
+        // Spara gamla positionen
+        int oldX = ghost.x;
+        int oldY = ghost.y;
         
-        // Hitta aktuell riktning för spöket
-        int currentDx = 0;
-        int currentDy = 0;
+        // Beräkna riktning till målet
+        int dx = targetX - ghost.x;
+        int dy = targetY - ghost.y;
         
-        // Beräkna spökets nuvarande riktning baserat på föregående flyttning
-        if (ghost.prevX < ghost.x) currentDx = 1;
-        else if (ghost.prevX > ghost.x) currentDx = -1;
-        else if (ghost.prevY < ghost.y) currentDy = 1;
-        else if (ghost.prevY > ghost.y) currentDy = -1;
+        // Nuvarande riktning
+        int currentDirection = ghost.direction;
         
-        // Motsatt riktning (inte tillåten)
-        int oppositeX = -currentDx;
-        int oppositeY = -currentDy;
+        // Kontrollera om vi är på en korsning
+        boolean isAtIntersection = isAtIntersection(ghost.x, ghost.y);
         
-        // Kontrollera om spöket befinner sig i mitten av en ruta
-        // Detta förhindrar att spökena ändrar riktning mitt i en korridor och ger dem ett jämnare rörelsemönster
-        boolean atIntersection = false;
-        int tileX = Math.round((float)ghost.x / tileSize) * tileSize;
-        int tileY = Math.round((float)ghost.y / tileSize) * tileSize;
+        // Möjliga riktningar, utom motsatt mot nuvarande (förhindrar att vända)
+        ArrayList<Integer> possibleDirections = new ArrayList<>();
+        int oppositeDirection = (currentDirection + 2) % 4;
         
-        if (Math.abs(ghost.x - tileX) < ghostSpeed && Math.abs(ghost.y - tileY) < ghostSpeed) {
-            // Justera positionen exakt till rutnätet om vi är nära
-            ghost.x = tileX;
-            ghost.y = tileY;
-            atIntersection = true;
-        }
+        // Om spöket får vända (t.ex. om det sitter fast eller är uppätet) lägger vi till motsatt riktning
+        boolean allowReverse = allowReverseOverride; // Använd override om den är sann
         
-        // Om spöket inte är i en korsning, fortsätt i samma riktning
-        if (!atIntersection) {
-            int dx = currentDx * ghostSpeed;
-            int dy = currentDy * ghostSpeed;
-            
-            // Om vi inte rört oss tidigare, välj en standardriktning (höger)
-            if (currentDx == 0 && currentDy == 0) {
-                dx = ghostSpeed;
-            }
-            
-            // Kontrollera om vi skulle kollidera med en vägg
-            int newX = ghost.x + dx;
-            int newY = ghost.y + dy;
-            
-            if (checkGhostWallCollision(ghost, newX, newY)) {
-                // Vi har stött på en vägg, tvinga spöket att ta ett beslut vid nästa ruta
-                atIntersection = true;
-            } else {
-                // Spara tidigare position och uppdatera position
-                ghost.prevX = ghost.x;
-                ghost.prevY = ghost.y;
-                ghost.x = newX;
-                ghost.y = newY;
-                return;
+        // Kontrollera om vi har fastnat (ingen framkomlig väg)
+        boolean isStuck = true;
+        for (int dir = 0; dir < 4; dir++) {
+            if (dir != oppositeDirection && canMove(ghost.x, ghost.y, dir)) {
+                isStuck = false;
+                break;
             }
         }
         
-        // Om vi kommit hit är spöket antingen i en korsning eller har stött på en vägg
-        // Beräkna alla möjliga vägar vid nästa korsning
-        List<int[]> possibleDirections = new ArrayList<>();
+        // Om spöket är fast, tillåt det att vända (om inte override redan tillåter det)
+        if (isStuck && !allowReverse) {
+            allowReverse = true;
+        }
         
-        for (int[] dir : directions) {
-            // Hoppa över om detta är motsatt riktning (spöken får inte vända om)
-            if (dir[0] == oppositeX && dir[1] == oppositeY) {
-                continue;
-            }
-            
-            // Testa om detta är en giltig riktning (ingen vägg)
-            int newX = ghost.x + dir[0] * ghostSpeed;
-            int newY = ghost.y + dir[1] * ghostSpeed;
-            
-            if (!checkGhostWallCollision(ghost, newX, newY)) {
+        // Samla möjliga riktningar
+        for (int dir = 0; dir < 4; dir++) {
+            if ((dir != oppositeDirection || allowReverse) && canMove(ghost.x, ghost.y, dir)) {
                 possibleDirections.add(dir);
             }
         }
         
-        // Om det inte finns några möjliga riktningar, vänd om (sällsynt specialfall)
-        if (possibleDirections.isEmpty()) {
-            possibleDirections.add(new int[]{oppositeX, oppositeY});
-        }
-        
-        // Beräkna avstånd för varje möjlig riktning
-        int bestDirectionIndex = -1;
-        double shortestDistance = Double.MAX_VALUE;
-        
-        for (int i = 0; i < possibleDirections.size(); i++) {
-            int[] dir = possibleDirections.get(i);
+        // Om vi är på en korsning eller måste ändra riktning
+        if (isAtIntersection || possibleDirections.size() == 1 || isStuck) {
+            int bestDirection = oppositeDirection; // Default till motsatt riktning om inget annat fungerar
+            int bestDistance = Integer.MAX_VALUE;
             
-            // Beräkna en position flera rutor framåt i denna riktning
-            // för att bättre simulera spökenas framförhållning
-            int lookaheadFactor = 5; // Titta 5 rutor framåt
-            int newX = ghost.x;
-            int newY = ghost.y;
-            
-            // Försök röra oss i denna riktning tills vi når en vägg eller lookaheadFactor
-            for (int step = 0; step < lookaheadFactor; step++) {
-                int tempX = newX + dir[0] * ghostSpeed;
-                int tempY = newY + dir[1] * ghostSpeed;
+            // Hitta bästa riktningen baserat på avstånd till målet
+            for (Integer dir : possibleDirections) {
+                int newX = ghost.x;
+                int newY = ghost.y;
                 
-                if (checkGhostWallCollision(ghost, tempX, tempY)) {
-                    break;
+                // Beräkna ny position baserat på riktning
+                if (dir == 0) newY -= ghostSpeed;      // UPP
+                else if (dir == 1) newX += ghostSpeed; // HÖGER
+                else if (dir == 2) newY += ghostSpeed; // NER
+                else if (dir == 3) newX -= ghostSpeed; // VÄNSTER
+                
+                // Beräkna det nya avståndet till målet
+                int newDistance = (int) Math.sqrt(Math.pow(newX - targetX, 2) + Math.pow(newY - targetY, 2));
+                
+                // Om vi hittar en bättre riktning, spara den
+                if (newDistance < bestDistance && canMove(ghost.x, ghost.y, dir)) {
+                    bestDistance = newDistance;
+                    bestDirection = dir;
                 }
-                
-                newX = tempX;
-                newY = tempY;
             }
             
-            // Beräkna avstånd till målpunkt
-            double distance = Math.sqrt(
-                Math.pow(newX - targetX, 2) + 
-                Math.pow(newY - targetY, 2)
-            );
+            ghost.direction = bestDirection;
+        }
+        
+        // Flytta spöket i den valda riktningen
+        if (ghost.direction == 0) ghost.y -= ghostSpeed;      // UPP
+        else if (ghost.direction == 1) ghost.x += ghostSpeed; // HÖGER
+        else if (ghost.direction == 2) ghost.y += ghostSpeed; // NER
+        else if (ghost.direction == 3) ghost.x -= ghostSpeed; // VÄNSTER
+        
+        // Kontrollera om den nya positionen är giltig
+        if (!isValidPosition(ghost.x, ghost.y)) {
+            // Återställ positionen om spöket skulle gå genom en vägg
+            ghost.x = oldX;
+            ghost.y = oldY;
             
-            if (distance < shortestDistance) {
-                shortestDistance = distance;
-                bestDirectionIndex = i;
-            }
+            // Välj en annan slumpmässig riktning
+            moveGhostRandomly(ghost);
         }
         
-        // Välj den bästa riktningen med viss sannolikhet, annars slumpmässig
-        // Högre sannolikhet ger mer aggressiva spöken
-        int[] chosenDir;
-        if (bestDirectionIndex != -1 && random.nextDouble() < chanceToFollow) {
-            chosenDir = possibleDirections.get(bestDirectionIndex);
-        } else {
-            // Ibland välj en slumpmässig riktning
-            chosenDir = possibleDirections.get(random.nextInt(possibleDirections.size()));
-        }
+        // Hantera tunnel
+        handleTunnel(ghost);
         
-        // Spara tidigare position innan rörelse
-        ghost.prevX = ghost.x;
-        ghost.prevY = ghost.y;
-        
-        // Uppdatera position
-        ghost.x += chosenDir[0] * ghostSpeed;
-        ghost.y += chosenDir[1] * ghostSpeed;
-        
-        // Hantera tunnlar på sidorna
-        if (ghost.x < -ghost.width) {
-            ghost.x = boardWidth;
-        } else if (ghost.x > boardWidth) {
-            ghost.x = -ghost.width;
-        }
+        // Uppdatera tidigare position
+        ghost.prevX = oldX;
+        ghost.prevY = oldY;
     }
-    
+
+    // Kontrollmetod för att se om en position är giltig (inte på en vägg)
+    private boolean isValidPosition(int x, int y) {
+        // Konvertera pixel-koordinater till rutnätspositioner
+        int row = y / tileSize;
+        int col = x / tileSize;
+        
+        // Säkerhetskontroll att vi är inom gränserna
+        if (row < 0 || row >= tileMap.length || col < 0 || col >= tileMap[0].length()) {
+            return true; // Hantera som tunnel om utanför gränserna
+        }
+        
+        // Kontrollera om det finns vägg på denna position
+        return tileMap[row].charAt(col) != 'X';
+    }
+
+    // Förbättrad metod för att kontrollera om spöket kan röra sig i en viss riktning
+    private boolean canMove(int x, int y, int direction) {
+        int newX = x;
+        int newY = y;
+        
+        // Beräkna ny position baserat på riktning
+        if (direction == 0) newY -= ghostSpeed;      // UPP
+        else if (direction == 1) newX += ghostSpeed; // HÖGER
+        else if (direction == 2) newY += ghostSpeed; // NER
+        else if (direction == 3) newX -= ghostSpeed; // VÄNSTER
+        
+        // Beräkna rutnätsposition för varje hörn av spöket (med en mindre hitbox för bättre rörelse)
+        int offset = tileSize / 4; // Mindre hitbox
+        
+        // Kontrollera varje hörn
+        int[][] corners = {
+            {newX + offset, newY + offset},         // Övre vänstra
+            {newX + tileSize - offset, newY + offset},  // Övre högra
+            {newX + offset, newY + tileSize - offset},  // Nedre vänstra
+            {newX + tileSize - offset, newY + tileSize - offset}   // Nedre högra
+        };
+        
+        for (int[] corner : corners) {
+            int row = corner[1] / tileSize;
+            int col = corner[0] / tileSize;
+            
+            // Kontrollera om hörnet är på en vägg
+            if (row >= 0 && row < tileMap.length && col >= 0 && col < tileMap[0].length() && 
+                tileMap[row].charAt(col) == 'X') {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    // Hjälpmetod för att avgöra om en position är en korsning
+    private boolean isAtIntersection(int x, int y) {
+        int count = 0;
+        
+        // Beräkna centerpositionen för spöket i rutnätet
+        int centerX = x + tileSize / 2;
+        int centerY = y + tileSize / 2;
+        
+        // Kontrollera om vi är centrerade på rutnätet (för att förhindra överdrivet byte av riktning)
+        if (centerX % tileSize > ghostSpeed && centerX % tileSize < tileSize - ghostSpeed) return false;
+        if (centerY % tileSize > ghostSpeed && centerY % tileSize < tileSize - ghostSpeed) return false;
+        
+        // Räkna möjliga riktningar från denna position
+        for (int dir = 0; dir < 4; dir++) {
+            if (canMove(x, y, dir)) {
+                count++;
+            }
+        }
+        
+        // Om vi kan gå åt mer än 2 riktningar, är det en korsning
+        return count > 2;
+    }
+
     private void moveGhostRandomly(Block ghost) {
-        // Kontrollera om vi är i en korsning
-        boolean atIntersection = false;
-        int tileX = Math.round((float)ghost.x / tileSize) * tileSize;
-        int tileY = Math.round((float)ghost.y / tileSize) * tileSize;
+        // Spara gamla positionen
+        int oldX = ghost.x;
+        int oldY = ghost.y;
         
-        if (Math.abs(ghost.x - tileX) < ghostSpeed && Math.abs(ghost.y - tileY) < ghostSpeed) {
-            // Justera positionen exakt till rutnätet om vi är nära
-            ghost.x = tileX;
-            ghost.y = tileY;
-            atIntersection = true;
+        // Nuvarande riktning
+        int currentDirection = ghost.direction;
+        
+        // Kontrollera om vi är på en korsning
+        boolean isAtIntersection = isAtIntersection(ghost.x, ghost.y);
+        
+        // Möjliga riktningar, utom motsatt mot nuvarande
+        ArrayList<Integer> possibleDirections = new ArrayList<>();
+        int oppositeDirection = (currentDirection + 2) % 4;
+        
+        // Kontrollera om vi har fastnat (ingen framkomlig väg)
+        boolean isStuck = true;
+        for (int dir = 0; dir < 4; dir++) {
+            if (dir != oppositeDirection && canMove(ghost.x, ghost.y, dir)) {
+                isStuck = false;
+                break;
+            }
         }
         
-        // Hitta aktuell riktning för spöket
-        int currentDx = 0;
-        int currentDy = 0;
-        
-        // Beräkna spökets nuvarande riktning baserat på föregående flyttning
-        if (ghost.prevX < ghost.x) currentDx = 1;
-        else if (ghost.prevX > ghost.x) currentDx = -1;
-        else if (ghost.prevY < ghost.y) currentDy = 1;
-        else if (ghost.prevY > ghost.y) currentDy = -1;
-        
-        // Om vi inte är i en korsning, fortsätt i samma riktning om möjligt
-        if (!atIntersection) {
-            int newX = ghost.x + currentDx * ghostSpeed;
-            int newY = ghost.y + currentDy * ghostSpeed;
-            
-            // Om ingen kollision, fortsätt samma riktning
-            if (!checkGhostWallCollision(ghost, newX, newY)) {
-                ghost.prevX = ghost.x;
-                ghost.prevY = ghost.y;
-                ghost.x = newX;
-                ghost.y = newY;
-                return;
-            }
-            
-            // Annars, behandla som om vi var i en korsning
-        }
-        
-        // Vi är i en korsning eller har stött på en vägg
-        // Samla alla möjliga riktningar vi kan gå i (inte inklusive bakåt)
-        List<int[]> possibleDirections = new ArrayList<>();
-        int[][] directions = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}}; // Höger, Ner, Vänster, Upp
-        
-        for (int[] dir : directions) {
-            // Hoppa över om detta är motsatt riktning (spöken får inte vända om)
-            if (dir[0] == -currentDx && dir[1] == -currentDy) {
-                continue;
-            }
-            
-            // Testa om detta är en giltig riktning (ingen vägg)
-            int newX = ghost.x + dir[0] * ghostSpeed;
-            int newY = ghost.y + dir[1] * ghostSpeed;
-            
-            if (!checkGhostWallCollision(ghost, newX, newY)) {
+        // Samla möjliga riktningar
+        for (int dir = 0; dir < 4; dir++) {
+            if ((dir != oppositeDirection || isStuck) && canMove(ghost.x, ghost.y, dir)) {
                 possibleDirections.add(dir);
             }
         }
         
-        // Om det inte finns några möjliga riktningar, vänd om (sällsynt specialfall)
-        if (possibleDirections.isEmpty()) {
-            possibleDirections.add(new int[]{-currentDx, -currentDy});
+        // Om vi är på en korsning eller om vi inte kan fortsätta i samma riktning
+        if (isAtIntersection || !canMove(ghost.x, ghost.y, currentDirection) || Math.random() < 0.1) {
+            if (possibleDirections.size() > 0) {
+                // Välj slumpmässig riktning från möjliga
+                int randomIndex = (int) (Math.random() * possibleDirections.size());
+                ghost.direction = possibleDirections.get(randomIndex);
+            } else if (isStuck) {
+                // Om vi ändå sitter fast, tillåt riktningen som är motsatt
+                ghost.direction = oppositeDirection;
+            }
         }
         
-        // Välj en slumpmässig giltig riktning
-        int[] chosenDir = possibleDirections.get(random.nextInt(possibleDirections.size()));
+        // Flytta spöket i den valda riktningen
+        if (ghost.direction == 0) ghost.y -= ghostSpeed;      // UPP
+        else if (ghost.direction == 1) ghost.x += ghostSpeed; // HÖGER
+        else if (ghost.direction == 2) ghost.y += ghostSpeed; // NER
+        else if (ghost.direction == 3) ghost.x -= ghostSpeed; // VÄNSTER
         
-        // Spara tidigare position och uppdatera position
-        ghost.prevX = ghost.x;
-        ghost.prevY = ghost.y;
-        ghost.x += chosenDir[0] * ghostSpeed;
-        ghost.y += chosenDir[1] * ghostSpeed;
-        
-        // Hantera tunnlar på sidorna
-        if (ghost.x < -ghost.width) {
-            ghost.x = boardWidth;
-        } else if (ghost.x > boardWidth) {
-            ghost.x = -ghost.width;
+        // Kontrollera om den nya positionen är giltig
+        if (!isValidPosition(ghost.x, ghost.y)) {
+            // Återställ positionen om spöket skulle gå genom en vägg
+            ghost.x = oldX;
+            ghost.y = oldY;
+            
+            // Välj annan riktning
+            ArrayList<Integer> newDirections = new ArrayList<>();
+            for (int dir = 0; dir < 4; dir++) {
+                if (canMove(ghost.x, ghost.y, dir)) {
+                    newDirections.add(dir);
+                }
+            }
+            
+            if (newDirections.size() > 0) {
+                int randomIndex = (int) (Math.random() * newDirections.size());
+                ghost.direction = newDirections.get(randomIndex);
+            }
         }
+        
+        // Hantera tunnel
+        handleTunnel(ghost);
+        
+        // Uppdatera tidigare position
+        ghost.prevX = oldX;
+        ghost.prevY = oldY;
     }
-    
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -1459,56 +1323,275 @@ public class PacMan extends JPanel {
         ghostsScared = false;
         scaredTimer = 0;
         ghostCombo = 1;
+        currentGhostMode = GhostMode.SCATTER; // Starta i scatter efter dödsfall
+        modeTimer = 0;
         
         // Visa "READY!" text igen
         showReady = true;
-        readyTimer = 120;
+        readyTimer = 120; // Återställ timern!
     }
 
-    // Uppdatera updateGame-metoden för att hantera timers för retro-element
-    private void updateGame() {
-        if (gameOver || gameWon || gamePaused) {
-            return;
+    // Metod för att hantera tunnlar för spöken och pacman
+    private void handleTunnel(Block entity) {
+        // Hantera tunnlar på sidorna
+        if (entity.x < -entity.width) {
+            entity.x = boardWidth;
+        } else if (entity.x > boardWidth) {
+            entity.x = -entity.width;
         }
+    }
+
+    // Uppdaterad metod för att avgöra om ett spöke är inne i spökgården
+    private boolean isGhostInCage(Block ghost) {
+        // Definiera spökgårdens bounding box baserat på den nya layouten
+        int cageX1 = 13 * tileSize;
+        int cageY1 = 14 * tileSize;
+        int cageX2 = 18 * tileSize;
+        int cageY2 = 16 * tileSize;
         
-        // Hantera "READY!" text vid start
-        if (showReady) {
-            readyTimer--;
-            if (readyTimer <= 0) {
-                showReady = false;
-            }
-            return; // Ingen rörelse medan "READY!" visas
-        }
+        // Kontrollera om spöket är inom denna area
+        return ghost.x >= cageX1 && ghost.x <= cageX2 && 
+               ghost.y >= cageY1 && ghost.y <= cageY2;
+    }
+
+    // Uppdaterad metod för att släppa ut spöket från buren
+    private void releaseGhostFromCage(Block ghost) {
+        // Konstanter för spökgårdens utgång
+        int exitX = 15 * tileSize + tileSize/2;
+        int exitY = 12 * tileSize + tileSize/2; // Utgångens mittpunkt
         
-        // Uppdatera animationsräknare
-        animationCounter++;
-        if (animationCounter % animationSpeed == 0) {
-            pacManMouthOpen = !pacManMouthOpen;
-        }
+        // Centrera spöket i x-led först för att sedan gå uppåt mot utgången
+        int ghostCenterX = ghost.x + ghost.width / 2;
+        int ghostCenterY = ghost.y + ghost.height / 2;
         
-        // Uppdatera frukttimer
-        if (showFruit) {
-            fruitTimer--;
-            if (fruitTimer <= 0) {
-                showFruit = false;
+        // Spara gamla positionen
+        int oldX = ghost.x;
+        int oldY = ghost.y;
+        
+        // Beräkna riktning till utgången
+        boolean moveVertically = Math.abs(ghostCenterY - exitY) > ghostSpeed;
+        boolean moveHorizontally = Math.abs(ghostCenterX - exitX) > ghostSpeed;
+        
+        // Prioritera vertikal rörelse om vi är nära utgången
+        if (ghostCenterY > exitY + tileSize) {
+            // Vi är under utgången, rör oss uppåt
+            ghost.y -= ghostSpeed;
+            ghost.direction = 0; // Upp
+        } else if (moveHorizontally) {
+            // Flytta i x-led för att centrera med utgången
+            if (ghostCenterX < exitX) {
+                ghost.x += ghostSpeed;
+                ghost.direction = 1; // Höger
+            } else {
+                ghost.x -= ghostSpeed;
+                ghost.direction = 3; // Vänster
             }
         } else {
-            // Slumpmässigt visa frukt var 10:e sekund
-            if (random.nextInt(600) == 1) { // Ungefär var 10:e sekund med 60 FPS
-                showFruit();
+            // När spöket är centrerat, flytta det uppåt
+            ghost.y -= ghostSpeed;
+            ghost.direction = 0; // Upp
+        }
+        
+        // Kontrollera för kollision med väggar
+        if (checkGhostWallCollision(ghost, ghost.x, ghost.y)) {
+            // Återställ position om kollision uppstår
+            ghost.x = oldX;
+            ghost.y = oldY;
+            
+            // Prova en annan riktning
+            if (ghost.direction == 0 || ghost.direction == 2) { // Om vi rörde oss vertikalt
+                // Prova horisontell rörelse
+                if (ghostCenterX < exitX) {
+                    ghost.x += ghostSpeed;
+                    ghost.direction = 1; // Höger
+                } else {
+                    ghost.x -= ghostSpeed;
+                    ghost.direction = 3; // Vänster
+                }
+            } else { // Om vi rörde oss horisontellt
+                // Prova vertikal rörelse
+                ghost.y -= ghostSpeed;
+                ghost.direction = 0; // Upp
+            }
+            
+            // Kontrollera igen för kollision
+            if (checkGhostWallCollision(ghost, ghost.x, ghost.y)) {
+                // Återställ om det fortfarande är kollision
+                ghost.x = oldX;
+                ghost.y = oldY;
             }
         }
         
-        // Uppdatera scared-timer för spöken
-        if (scaredTimer > 0) {
-            scaredTimer--;
-        }
-        
-        // Uppdatera timer för poängvisning
-        if (pointsDisplayTimer > 0) {
-            pointsDisplayTimer--;
-        }
-        
-        // ... (befintlig kod för rörelse och kollisioner) ...
+        // Uppdatera tidigare position
+        ghost.prevX = oldX;
+        ghost.prevY = oldY;
     }
+
+    // Ny metod för att röra spöket inuti buren
+    private void moveGhostInCage(Block ghost) {
+        // Låt spöket röra sig långsamt upp och ner i buren
+        // för att skapa illusionen av att de väntar på att släppas ut
+        int ghostCenterY = ghost.y + ghost.height / 2;
+        int cageTop = 14 * tileSize + 5;
+        int cageBottom = 16 * tileSize - 5;
+        
+        // Spara tidigare position
+        int oldX = ghost.x;
+        int oldY = ghost.y;
+        
+        // Om spöket rör sig uppåt
+        if (ghost.direction == 0) {
+            ghost.y -= ghost.height / 4;
+            if (ghostCenterY <= cageTop) {
+                // Byt riktning när spöket når toppen
+                ghost.direction = 2;
+            }
+        } else {
+            // Rör spöket nedåt
+            ghost.y += ghost.height / 4;
+            if (ghostCenterY >= cageBottom) {
+                // Byt riktning när spöket når botten
+                ghost.direction = 0;
+            }
+        }
+        
+        // Kontrollera kollision med väggar
+        if (checkGhostWallCollision(ghost, ghost.x, ghost.y)) {
+            // Återställ position om kollision
+            ghost.x = oldX;
+            ghost.y = oldY;
+            // Vänd riktning
+            ghost.direction = (ghost.direction == 0) ? 2 : 0;
+        }
+        
+        // Uppdatera tidigare position
+        ghost.prevX = oldX;
+        ghost.prevY = oldY;
+    }
+
+    // Ny hjälpmetod för att bestämma spökögonens riktning baserat på rörelse
+    private int getGhostEyeDirection(Block ghost) {
+        // 0=höger, 1=ner, 2=vänster, 3=upp
+        if (ghost.x > ghost.prevX) return 0; // Rör sig åt höger
+        if (ghost.y > ghost.prevY) return 1; // Rör sig nedåt
+        if (ghost.x < ghost.prevX) return 2; // Rör sig åt vänster
+        if (ghost.y < ghost.prevY) return 3; // Rör sig uppåt
+        
+        // Använd spökets riktning om ingen rörelse detekterats
+        return ghost.direction;
+    }
+
+    // Ny hjälpmetod för att hitta ett spöke baserat på dess typindex
+    private Block findGhostByType(int typeIndex) {
+        for (Block ghost : ghosts) {
+            if (ghost.ghostIndex == typeIndex) {
+                return ghost;
+            }
+        }
+        return null; // Hittades inte
+    }
+
+    // --- LÄGG TILL DESSA TVÅ NYA HJÄLPMETODER --- 
+
+    // Kontrollerar om Pac-Man kolliderar med en vägg vid given position
+    private boolean checkPacManWallCollision(int x, int y) {
+        // Använd en lite mindre rektangel för PacMan för att undvika att fastna på hörn
+        int tolerance = 2;
+        Rectangle pacmanRect = new Rectangle(x + tolerance, y + tolerance,
+                                          pacman.width - 2 * tolerance, pacman.height - 2 * tolerance);
+        for (Block wall : walls) {
+            Rectangle wallRect = new Rectangle(wall.x, wall.y, wall.width, wall.height);
+            if (pacmanRect.intersects(wallRect)) {
+                return true; // Kollision!
+            }
+        }
+        return false; // Ingen kollision
+    }
+
+    // Kontrollerar om Pac-Man *kan* röra sig till nästa ruta i en given riktning
+    private boolean canMovePacMan(int currentX, int currentY, int direction) {
+        int testX = currentX;
+        int testY = currentY;
+        // Beräkna positionen en pixel in i nästa ruta för att testa
+        int testDistance = 1;
+
+        if (direction == 0) testX += testDistance; // Höger
+        else if (direction == 1) testY += testDistance; // Ner
+        else if (direction == 2) testX -= testDistance; // Vänster
+        else if (direction == 3) testY -= testDistance; // Upp
+
+        // Använd kollisionskontrollen för att se om vägen är fri
+        return !checkPacManWallCollision(testX, testY);
+    }
+    // --- SLUT PÅ NYA HJÄLPMETODER ---
+
+    // --- LÄGG TILLBAKA checkFoodCollision HÄR --- 
+    private void checkFoodCollision() {
+        // Kontrollera om Pac-Man äter mat
+        Iterator<Block> foodIterator = foods.iterator();
+        while (foodIterator.hasNext()) {
+            Block food = foodIterator.next();
+            if (pacman.x < food.x + food.width && 
+                pacman.x + pacman.width > food.x && 
+                pacman.y < food.y + food.height && 
+                pacman.y + pacman.height > food.y) {
+                foodIterator.remove();
+                score += foodPoints;
+                soundManager.play("eat");
+                
+                // Visuell feedback när mat äts upp
+                scoreDisplayText = "+" + foodPoints;
+                scoreDisplayPosition.x = food.x;
+                scoreDisplayPosition.y = food.y;
+                scoreDisplayTimer = 20; // Visa i 20 frames
+                
+                break;
+            }
+        }
+        
+        // Kontrollera om Pac-Man äter power pellet
+        Iterator<Block> powerPelletIterator = powerPellets.iterator();
+        while (powerPelletIterator.hasNext()) {
+            Block powerPellet = powerPelletIterator.next();
+            if (pacman.x < powerPellet.x + powerPellet.width && 
+                pacman.x + pacman.width > powerPellet.x && 
+                pacman.y < powerPellet.y + powerPellet.height && 
+                pacman.y + pacman.height > powerPellet.y) {
+                powerPelletIterator.remove();
+                score += pelletPoints;
+                
+                // Viktigt: Aktivera skrämt läge för spökena
+                // ghostsScared = true; // Används ej globalt
+                // scaredTimer = 0; // Används ej globalt
+                
+                // Återställ kombo-räknaren när en ny power pellet tas
+                ghostCombo = 1; // Korrigerat från ghostCombo++ i en tidigare feltolkad edit
+                
+                // Uppdatera spökens utseende till skrämda
+                for (Block ghost : ghosts) {
+                    if (!ghost.isEaten && !ghost.inCage) { // Påverka bara spöken utanför buren/ej uppätna
+                        ghost.isScared = true;  
+                        ghost.scaredTimer = scaredDuration; 
+                        updateGhostImage(ghost); // Uppdatera bilden direkt
+                        // Tvinga vändning
+                        int oppositeDirection = (ghost.direction + 2) % 4;
+                        if(canMove(ghost.x, ghost.y, oppositeDirection)) {
+                             ghost.direction = oppositeDirection;
+                        }
+                    }
+                }
+                
+                soundManager.play("power");
+                
+                // Visuell feedback när power pellet äts upp
+                scoreDisplayText = "+" + pelletPoints;
+                scoreDisplayPosition.x = powerPellet.x;
+                scoreDisplayPosition.y = powerPellet.y;
+                scoreDisplayTimer = 30; // Visa lite längre
+                
+                break;
+            }
+        }
+    }
+    // --- SLUT PÅ checkFoodCollision --- 
 }
